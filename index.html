@@ -1,0 +1,3259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marci Clicker - Premium Headpat Simulator</title>
+    <!-- Importing modern typography from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(17, 24, 39, 0.55);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --accent-gold: #fbbf24;
+            --accent-gold-hover: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        body[data-theme="marci"] {
+            --accent-gold: #fbbf24;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+        }
+
+        body[data-theme="aliz"] {
+            --accent-gold: #f472b6;
+            --accent-purple: #ec4899;
+            --accent-blue: #38bdf8;
+            --accent-green: #14b8a6;
+        }
+
+        body[data-theme="biborka"] {
+            --accent-gold: #f59e0b;
+            --accent-purple: #a78bfa;
+            --accent-blue: #22d3ee;
+            --accent-green: #34d399;
+        }
+
+        body[data-theme="deva"] {
+            --accent-gold: #f9a8d4;
+            --accent-purple: #c084fc;
+            --accent-blue: #60a5fa;
+            --accent-green: #4ade80;
+        }
+
+        body[data-theme="tanna"] {
+            --accent-gold: #38bdf8;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #38bdf8;
+            --accent-green: #34d399;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% 30%, #1e293b 0%, var(--bg-color) 80%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- Header & News Ticker --- */
+        header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--accent-gold), var(--accent-purple));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ticker-container {
+            flex-grow: 1;
+            max-width: 600px;
+            margin: 0 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 6px 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ticker-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent-gold);
+            background: rgba(251, 191, 36, 0.15);
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        #news-ticker {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* --- Main Game Grid Layout --- */
+        .game-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1fr;
+            flex-grow: 1;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1024px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+                overflow-y: auto;
+            }
+        }
+
+        /* --- Glassmorphic Column Styling --- */
+        .column {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Left Column: Clicker Center --- */
+        .clicker-column {
+            align-items: center;
+            justify-content: center;
+            min-height: 450px;
+        }
+
+        .halo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 380px;
+            height: 380px;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+
+        .clicker-stats {
+            z-index: 2;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .pat-counter {
+            font-family: 'Outfit', sans-serif;
+            font-size: 44px;
+            font-weight: 800;
+            color: #ffffff;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            margin-bottom: 4px;
+        }
+
+        .pat-speed {
+            font-size: 15px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .character-container {
+            position: relative;
+            z-index: 2;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .character-img {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 6px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(251, 191, 36, 0.1);
+            transition: transform 0.05s ease, border-color 0.3s ease;
+        }
+
+        .character-img:hover {
+            transform: scale(1.02);
+            border-color: rgba(251, 191, 36, 0.4);
+        }
+
+
+        /* --- Middle Column: Dash / Upgrades --- */
+        .dash-column {
+            flex-grow: 1.2;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: #ffffff;
+            background: rgba(251, 191, 36, 0.15);
+            box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.2);
+        }
+
+        .tab-content {
+            flex-grow: 1;
+            display: none;
+            overflow-y: auto;
+            max-height: 520px;
+            padding-right: 4px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Upgrades Sub-Section */
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upgrades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .upgrade-slot {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, rgba(30, 30, 50, 0.7), rgba(15, 15, 35, 0.9));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            position: relative;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .upgrade-slot:hover {
+            transform: translateY(-4px) scale(1.08);
+            border-color: var(--accent-gold);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 140, 0, 0.1));
+            box-shadow: 0 8px 24px rgba(251, 191, 36, 0.25), 0 0 0 1px rgba(251, 191, 36, 0.2);
+        }
+
+        .upgrade-slot:active {
+            transform: translateY(0px) scale(0.95);
+            box-shadow: 0 1px 4px rgba(251, 191, 36, 0.15);
+            transition: all 0.05s ease;
+        }
+
+        .upgrade-slot.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Tooltip style */
+        .tooltip {
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%) translateY(5px);
+            background: #111827;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            width: 200px;
+            color: #ffffff;
+            z-index: 20;
+            text-align: left;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #111827 transparent transparent transparent;
+        }
+
+        .upgrade-slot:hover .tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .tooltip-title {
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .tooltip-cost {
+            font-weight: 600;
+            color: var(--accent-green);
+            margin-bottom: 6px;
+        }
+
+        /* Achievements Panel */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+            gap: 12px;
+        }
+
+        .achievement-card {
+            aspect-ratio: 1;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            text-align: center;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .achievement-card.locked {
+            filter: grayscale(100%);
+            opacity: 0.3;
+        }
+
+        .achievement-card .icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .achievement-card:hover .tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Stats Subpanel */
+        .stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+        }
+
+        .stat-val {
+            font-weight: 600;
+        }
+
+        /* Settings Subpanel */
+        .settings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .settings-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .settings-btn.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .settings-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .settings-section {
+            margin-bottom: 8px;
+        }
+
+        .settings-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .theme-card {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .theme-card.active {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18), 0 10px 24px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+        }
+
+        .theme-card-name {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .theme-card-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+
+        .theme-card-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-top: 6px;
+        }
+
+        .settings-drawer {
+            margin-top: 16px;
+            width: 100%;
+            max-width: 280px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.04);
+            overflow: hidden;
+        }
+
+        .settings-drawer-toggle {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .settings-drawer-body {
+            padding: 0 12px 12px;
+        }
+
+        .settings-drawer-body.hidden {
+            display: none;
+        }
+
+        .lang-picker {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 5px;
+            margin-bottom: 4px;
+        }
+
+        .lang-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-bottom: 2px solid transparent;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .lang-btn:hover {
+            color: var(--text-main);
+        }
+
+        .lang-btn.active {
+            color: var(--accent-gold);
+            border-bottom-color: var(--accent-gold);
+        }
+
+        /* --- Right Column: Store Center --- */
+        .store-column {
+            flex-grow: 1;
+        }
+
+        .multiplier-bar {
+            display: flex;
+            gap: 6px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+        }
+
+        .mult-btn {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .mult-btn:hover {
+            color: #ffffff;
+        }
+
+        .mult-btn.active {
+            background: var(--accent-gold);
+            color: #000000;
+            box-shadow: 0 4px 10px rgba(251, 191, 36, 0.2);
+        }
+
+        .buildings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            max-height: 520px;
+            padding-right: 4px;
+        }
+
+        .building-row {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .building-row:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateX(4px) scale(1.01);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .building-row:active {
+            transform: translateX(1px) scale(0.99);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.05s ease;
+        }
+
+        .building-row.affordable:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15), 0 0 0 1px rgba(16, 185, 129, 0.2);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+        }
+
+        .building-row.locked {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .building-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .building-icon {
+            font-size: 26px;
+            background: rgba(255, 255, 255, 0.04);
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .building-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .building-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .building-cost {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-red);
+            transition: color 0.2s ease;
+        }
+
+        .affordable .building-cost {
+            color: var(--accent-green);
+        }
+
+        .building-count {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.2);
+            transition: color 0.2s ease;
+        }
+
+        .building-row:hover .building-count {
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .building-row:hover .tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* --- Click Particles & Flying Emojis --- */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            user-select: none;
+            z-index: 100;
+            font-size: 22px;
+            animation: particleAnimation 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes particleAnimation {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--dx), var(--dy)) scale(0.6) rotate(var(--rot));
+            }
+        }
+
+        .floating-text {
+            position: absolute;
+            pointer-events: none;
+            user-select: none;
+            z-index: 101;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 900;
+            font-size: 24px;
+            color: var(--accent-gold);
+            text-shadow: 0 2px 6px rgba(0,0,0,0.8), 0 0 12px rgba(251, 191, 36, 0.4);
+            animation: floatUp 0.7s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(0.8);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-90px) scale(1.15);
+            }
+        }
+
+        /* --- Slide-in Achievement Toast --- */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid var(--accent-gold);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(251, 191, 36, 0.2);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.fade-out {
+            animation: fadeOut 0.5s ease-in forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+        }
+
+        .toast-icon {
+            font-size: 28px;
+            background: rgba(251, 191, 36, 0.15);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+        }
+
+        .toast-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toast-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin-bottom: 2px;
+        }
+
+        .toast-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        /* --- Utility & Audio Toggles --- */
+        .btn-icon {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* --- Login Overlay --- */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 30%, #1e293b 0%, var(--bg-color) 80%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        #login-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .login-card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 440px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.02);
+            text-align: center;
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardEntrance {
+            from {
+                transform: translateY(30px) scale(0.96);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .login-logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--accent-gold), var(--accent-purple));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+        }
+
+        .login-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .login-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-left: 4px;
+        }
+
+        .login-input {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .login-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, var(--accent-gold), #f59e0b);
+            border: none;
+            color: #0b0f19;
+            padding: 14px;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.25);
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.35);
+            background: linear-gradient(135deg, #fcd34d, var(--accent-gold));
+        }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin: 24px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .login-divider:not(:empty)::before {
+            margin-right: 12px;
+        }
+
+        .login-divider:not(:empty)::after {
+            margin-left: 12px;
+        }
+
+        /* Custom Google button */
+        .google-login-btn {
+            background: #ffffff;
+            border: 1px solid #dadce0;
+            color: #3c4043;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-family: 'Roboto', 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .google-login-btn:hover {
+            background: #f8f9fa;
+            border-color: #d2d4d7;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+            transform: translateY(-0.5px);
+        }
+
+        .google-icon-svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Discord brand button */
+        .discord-login-btn {
+            background: #5865F2;
+            border: none;
+            color: #ffffff;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(88, 101, 242, 0.25);
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+        .discord-login-btn:hover {
+            background: #4752C4;
+            box-shadow: 0 6px 16px rgba(88, 101, 242, 0.35);
+            transform: translateY(-0.5px);
+        }
+
+        /* Passkey brand button */
+        .passkey-login-btn {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+        .passkey-login-btn:hover {
+            border-color: rgba(255, 255, 255, 0.25);
+            background: linear-gradient(135deg, #334155, #1e293b);
+            transform: translateY(-0.5px);
+        }
+
+        /* Firebase brand button & form */
+        .firebase-btn {
+            background: #FFCA28;
+            border: none;
+            color: #039BE5;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(255, 202, 40, 0.25);
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+        .firebase-btn:hover {
+            background: #FFE082;
+            transform: translateY(-0.5px);
+        }
+
+        .firebase-form-card {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 15px;
+            text-align: left;
+            display: none;
+            animation: cardEntrance 0.3s ease;
+        }
+
+        .firebase-form-card.active {
+            display: block;
+        }
+
+        /* Config tabbed styles */
+        .config-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 15px;
+            gap: 5px;
+        }
+
+        .config-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-bottom: 2px solid transparent;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .config-tab-btn.active {
+            color: var(--accent-gold);
+            border-bottom-color: var(--accent-gold);
+        }
+
+        .config-content-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* --- Header Profile Section --- */
+        .profile-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 4px 12px 4px 6px;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .profile-container:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .profile-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .profile-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            max-width: 100px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-type {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Profile Dropdown Menu */
+        .profile-dropdown {
+            position: absolute;
+            top: 110%;
+            right: 0;
+            background: #111827;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 8px;
+            width: 160px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 100;
+            animation: dropFade 0.2s ease forwards;
+        }
+
+        @keyframes dropFade {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .profile-dropdown.active {
+            display: flex;
+        }
+
+        .profile-dropdown-item {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .profile-dropdown-item:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .profile-dropdown-item.danger:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+        }
+
+        /* --- Mock Google Account Chooser Modal --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .google-chooser-card {
+            background: #ffffff;
+            color: #202124;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 380px;
+            padding: 30px 24px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.25);
+            text-align: left;
+            font-family: 'Roboto', 'Arial', sans-serif;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .google-chooser-card {
+            transform: scale(1);
+        }
+
+        .google-chooser-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .google-chooser-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin-top: 12px;
+            color: #202124;
+        }
+
+        .google-chooser-subtitle {
+            font-size: 14px;
+            color: #5f6368;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .google-account-list {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .google-account-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            border-bottom: 1px solid #dadce0;
+            background: none;
+            border-left: none;
+            border-right: none;
+            border-top: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .google-account-item:last-child {
+            border-bottom: none;
+        }
+
+        .google-account-item:hover {
+            background: #f8f9fa;
+        }
+
+        .google-account-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 12px;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .google-account-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .google-account-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #3c4043;
+        }
+
+        .google-account-email {
+            font-size: 12px;
+            color: #5f6368;
+        }
+
+        .google-chooser-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #5f6368;
+        }
+
+        .google-chooser-cancel {
+            background: transparent;
+            border: none;
+            color: #1a73e8;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            padding: 6px 12px;
+            border-radius: 4px;
+        }
+
+        .google-chooser-cancel:hover {
+            background: rgba(26, 115, 232, 0.04);
+            color: #1557b0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <span>🖐</span> Marci Clicker
+        </div>
+        
+        <!-- News Ticker -->
+        <div class="ticker-container">
+            <span class="ticker-label" data-i18n="header.news">News</span>
+            <div id="news-ticker" data-i18n="header.tickerDefault">Marci awaits your warm, friendly headpats.</div>
+        </div>
+
+        <div class="header-controls">
+            <!-- User Profile Badge -->
+            <div class="profile-container" id="header-profile" onclick="toggleProfileDropdown(event)" data-i18n-title="header.accountOptions" title="Account Options">
+                <div class="profile-avatar" id="header-avatar">?</div>
+                <div class="profile-info">
+                    <span class="profile-name" id="header-username" data-i18n="header.guest">Guest</span>
+                    <span class="profile-type" id="header-profile-type">Local</span>
+                </div>
+                <!-- Profile dropdown menu -->
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <button class="profile-dropdown-item" onclick="saveGame(); alert(t('alerts.progressSaved'));">
+                        <span>💾</span> <span data-i18n="header.saveProgress">Save Progress</span>
+                    </button>
+                    <button class="profile-dropdown-item" onclick="openProfileChooser()">
+                        <span>👥</span> <span data-i18n="header.switchProfile">Switch Profile</span>
+                    </button>
+                    <button class="profile-dropdown-item danger" onclick="logoutUser()">
+                        <span>🚪</span> <span data-i18n="header.logOut">Log Out</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audio Toggle Button -->
+            <button class="btn-icon" id="audio-toggle" onclick="toggleAudio()" data-i18n-title="header.toggleAudio" title="Toggle Audio Synthesizer">
+                🔊
+            </button>
+            <button class="btn-icon" onclick="saveGame()" data-i18n-title="header.saveManually" title="Save Progress Manually">
+                💾
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="game-container">
+        
+        <!-- Left: Clicker Hub -->
+        <div class="column clicker-column">
+            <div class="halo" id="halo-glow"></div>
+            
+            <div class="clicker-stats">
+                <div class="pat-counter" id="pat-count">0 pats</div>
+                <div class="pat-speed" id="pat-speed">per second: 0</div>
+            </div>
+
+            <div class="character-container" id="pet-container" onclick="handlePet(event)">
+                <img id="pet-img-idle" class="character-img" src="Marci/idle.jpg" alt="Marci Idle" draggable="false">
+                <img id="pet-img-click" class="character-img" src="Marci/petpet.gif" alt="Marci Click" draggable="false" style="display: none;">
+            </div>
+
+            <div class="settings-drawer" id="settings-drawer">
+                <button class="settings-drawer-toggle" onclick="toggleSettingsDrawer()">
+                    <span>⚙️ Settings</span>
+                    <span id="settings-drawer-arrow">▸</span>
+                </button>
+                <div class="settings-drawer-body hidden" id="settings-drawer-body">
+                    <div class="settings-list">
+                        <div class="settings-section">
+                            <div class="settings-section-title">Theme</div>
+                            <div class="theme-grid">
+                                <button class="theme-card active" id="theme-card-marci" onclick="setThemePreset('marci')">
+                                    <div class="theme-card-name">🖐 Marci</div>
+                                    <div class="theme-card-subtitle">Golden and playful</div>
+                                </button>
+                                <button class="theme-card" id="theme-card-aliz" onclick="setThemePreset('aliz')">
+                                    <div class="theme-card-name">🐾 Alíz</div>
+                                    <div class="theme-card-subtitle">Soft pink and bright</div>
+                                </button>
+                                <button class="theme-card" id="theme-card-biborka" onclick="setThemePreset('biborka')">
+                                    <div class="theme-card-name">🪶 Biborka</div>
+                                    <div class="theme-card-subtitle">Calm teal and warm</div>
+                                </button>
+                                <button class="theme-card" id="theme-card-deva" onclick="setThemePreset('deva')">
+                                    <div class="theme-card-name">🌸 Déva</div>
+                                    <div class="theme-card-subtitle">Sweet rose and fresh</div>
+                                </button>
+                                <button class="theme-card" id="theme-card-tanna" onclick="setThemePreset('tanna')">
+                                    <div class="theme-card-name">🦈 T. Anna</div>
+                                    <div class="theme-card-subtitle">A sleek new theme</div>
+                                </button>
+                            </div>
+                            <div class="theme-card-hint">Pick a preset to change the pet, colors, and glow instantly.</div>
+                        </div>
+
+                        <div class="settings-section">
+                            <div class="settings-section-title" data-i18n="settings.language">Language</div>
+                            <div class="lang-picker">
+                                <button class="lang-btn" id="lang-en" onclick="setLanguage('en')">English</button>
+                                <button class="lang-btn" id="lang-hu" onclick="setLanguage('hu')">Magyar</button>
+                                <button class="lang-btn" id="lang-de" onclick="setLanguage('de')">Deutsch</button>
+                            </div>
+                        </div>
+
+                        <button class="settings-btn" onclick="saveGame()">
+                            <span>💾</span> <span data-i18n="settings.saveGame">Save Game State</span>
+                        </button>
+                        <button class="settings-btn" onclick="exportSave()">
+                            <span>📤</span> <span data-i18n="settings.exportSave">Export Save Data</span>
+                        </button>
+                        <button class="settings-btn" onclick="importSave()">
+                            <span>📥</span> <span data-i18n="settings.importSave">Import Save Data</span>
+                        </button>
+                        <button class="settings-btn danger" onclick="resetGame()">
+                            <span>⚠️</span> <span data-i18n="settings.resetGame">Wipe Save / Reset Game</span>
+                        </button>
+
+                        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px; font-size: 12px; color: var(--text-muted); line-height: 1.45;">
+                            ℹ️ <strong data-i18n="settings.authSetup">Authentication Setup</strong><br>
+                            <span data-i18n="settings.authSetupDesc">Authentication credentials (Google, Discord, Firebase) are configured directly on the main Login Screen setup panel.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle: Stats, Upgrades, Achievements, Settings -->
+        <div class="column dash-column">
+            <!-- Tabs -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="upgrades" onclick="switchTab('upgrades')" data-i18n="tabs.upgrades">Upgrades</button>
+                <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')" data-i18n="tabs.stats">Statistics</button>
+                <button class="tab-btn" data-tab="achievements" onclick="switchTab('achievements')" data-i18n="tabs.achievements">Achievements</button>
+            </div>
+
+            <!-- Tab: Upgrades & Store -->
+            <div class="tab-content active" id="tab-upgrades">
+                <div class="section-title">
+                    <span data-i18n="sections.availableUpgrades">Available Upgrades</span>
+                </div>
+                <div class="upgrades-grid" id="upgrades-container">
+                    <!-- Dynamic upgrades inserted here -->
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 10px;" id="no-upgrades-msg" data-i18n="upgrades.noUpgrades">
+                    No upgrades available to buy.
+                </div>
+            </div>
+
+            <!-- Tab: Statistics -->
+            <div class="tab-content" id="tab-stats">
+                <div class="section-title" data-i18n="sections.gameStats">Game Stats</div>
+                <div class="stats-list">
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="stats.currentHeadpats">Current Headpats</span>
+                        <span class="stat-val" id="stat-current-pats">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="stats.cumulativeHeadpats">Cumulative Headpats</span>
+                        <span class="stat-val" id="stat-total-pats">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="stats.totalClicks">Total Clicks</span>
+                        <span class="stat-val" id="stat-total-clicks">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="stats.hps">Headpats Per Second (HPS)</span>
+                        <span class="stat-val" id="stat-hps">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="stats.hpc">Headpats Per Click (HPC)</span>
+                        <span class="stat-val" id="stat-hpc">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" data-i18n="stats.timePlayed">Time Played</span>
+                        <span class="stat-val" id="stat-time-played">0s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Achievements -->
+            <div class="tab-content" id="tab-achievements">
+                <div class="section-title"><span data-i18n="sections.achievements">Achievements</span> <span id="achievement-percent" style="font-size: 13px; color: var(--accent-gold);">0% Unlocked</span></div>
+                <div class="achievements-grid" id="achievements-container">
+                    <!-- Achievements slots populated here -->
+                </div>
+            </div>
+
+            <!-- Tab: Settings -->
+            <div class="tab-content" id="tab-settings" style="display:none;">
+                <div class="section-title" data-i18n="sections.settings">Settings</div>
+                <div class="settings-list">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Theme</div>
+                        <div class="theme-grid">
+                            <button class="theme-card active" id="theme-card-marci" onclick="setThemePreset('marci')">
+                                <div class="theme-card-name">🖐 Marci</div>
+                                <div class="theme-card-subtitle">Golden and playful</div>
+                            </button>
+                            <button class="theme-card" id="theme-card-aliz" onclick="setThemePreset('aliz')">
+                                <div class="theme-card-name">🐾 Alíz</div>
+                                <div class="theme-card-subtitle">Soft pink and bright</div>
+                            </button>
+                            <button class="theme-card" id="theme-card-biborka" onclick="setThemePreset('biborka')">
+                                <div class="theme-card-name">🪶 Biborka</div>
+                                <div class="theme-card-subtitle">Calm teal and warm</div>
+                            </button>
+                            <button class="theme-card" id="theme-card-deva" onclick="setThemePreset('deva')">
+                                <div class="theme-card-name">🌸 Déva</div>
+                                <div class="theme-card-subtitle">Sweet rose and fresh</div>
+                            </button>
+                            <button class="theme-card" id="theme-card-tanna" onclick="setThemePreset('tanna')">
+                                <div class="theme-card-name">🦈 T. Anna</div>
+                                <div class="theme-card-subtitle">A sleek new theme</div>
+                            </button>
+                        </div>
+                        <div class="theme-card-hint">Pick a preset to change the pet, colors, and glow instantly.</div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title" data-i18n="settings.language">Language</div>
+                        <div class="lang-picker">
+                            <button class="lang-btn" id="lang-en" onclick="setLanguage('en')">English</button>
+                            <button class="lang-btn" id="lang-hu" onclick="setLanguage('hu')">Magyar</button>
+                            <button class="lang-btn" id="lang-de" onclick="setLanguage('de')">Deutsch</button>
+                        </div>
+                    </div>
+
+                    <!-- Auth Config Indicator -->
+                    <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px; font-size: 12px; color: var(--text-muted); line-height: 1.45;">
+                        ℹ️ <strong data-i18n="settings.authSetup">Authentication Setup</strong><br>
+                        <span data-i18n="settings.authSetupDesc">Authentication credentials (Google, Discord, Firebase) are configured directly on the main Login Screen setup panel.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Buildings Store -->
+        <div class="column store-column">
+            <div class="section-title">
+                <span data-i18n="sections.buildingsStore">Buildings Store</span>
+                <!-- Buy Multiplier -->
+                <div class="multiplier-bar">
+                    <button class="mult-btn active" onclick="setBuyMult(1, this)">x1</button>
+                    <button class="mult-btn" onclick="setBuyMult(10, this)">x10</button>
+                    <button class="mult-btn" onclick="setBuyMult(100, this)">x100</button>
+                    <button class="mult-btn" onclick="setBuyMult('max', this)" data-i18n="multiplier.max">Max</button>
+                </div>
+            </div>
+
+            <div class="buildings-list" id="buildings-container">
+                <!-- Dynamically generated rows -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Achievement Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Login Screen Overlay -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <div class="login-logo">
+                <span>🖐</span> Marci Clicker
+            </div>
+            <div class="login-subtitle" data-i18n="login.subtitle">Premium Headpat Simulator</div>
+
+            <div class="login-form-group">
+                <label class="login-label" for="username-input" data-i18n="login.enterUsername">Enter Username</label>
+                <input type="text" id="username-input" class="login-input" data-i18n-placeholder="login.usernamePlaceholder" placeholder="e.g. Joel" maxlength="15" onkeydown="if(event.key === 'Enter') loginWithName()">
+            </div>
+
+            <button class="login-btn" onclick="loginWithName()" data-i18n="login.startPatting">Start Patting</button>
+
+            <div class="login-divider" data-i18n="login.orSignIn">Or Sign In With</div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="discord-login-btn" onclick="loginWithDiscordClick()">
+                    <svg viewBox="0 0 127.14 96.36" width="18" height="18" fill="currentColor">
+                        <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.5-5c.9-.65,1.76-1.34,2.58-2a75.58,75.58,0,0,0,72.9,0c.82.71,1.68,1.4,2.58,2a68.86,68.86,0,0,1-10.5,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31-18.83C129.87,48.24,124,25.41,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.9,46,53.9,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.14,46,96.14,53,91,65.69,84.69,65.69Z"/>
+                    </svg>
+                    <span data-i18n="login.continueDiscord">Continue with Discord</span>
+                </button>
+
+                <button class="google-login-btn" onclick="loginWithGoogleClick()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M21.35 11.1h-9.17v2.98h5.25c-.23 1.2-.95 2.22-2.02 2.9v2.41h3.27c1.92-1.77 3.02-4.38 3.02-7.49 0-.69-.06-1.35-.17-1.98z"/>
+                        <path d="M12.18 22c2.73 0 5.02-.9 6.69-2.45l-3.27-2.41c-.9.61-2.06.97-3.42.97-2.63 0-4.86-1.77-5.66-4.15H3.1v2.6A10.01 10.01 0 0 0 12.18 22z"/>
+                        <path d="M6.52 12.96A5.96 5.96 0 0 1 12.18 6.98c1.42 0 2.7.49 3.7 1.44l2.77-2.77A9.95 9.95 0 0 0 3.1 6.38l3.42 2.58z"/>
+                        <path d="M3.1 6.38V3.78H.7V6.38H3.1z"/>
+                    </svg>
+                    <span data-i18n="login.continueGoogle">Continue with Google</span>
+                </button>
+
+                <button class="firebase-login-btn" onclick="toggleFirebaseForm()">
+                    <span>🔐</span>
+                    <span data-i18n="login.continueFirebase">Continue with Firebase</span>
+                </button>
+            </div>
+
+            <div id="firebase-form-panel" class="firebase-form-panel">
+                <input type="email" id="firebase-email" class="login-input" placeholder="Email" />
+                <input type="password" id="firebase-password" class="login-input" placeholder="Password" />
+                <div class="firebase-form-actions">
+                    <button class="firebase-action-btn" onclick="firebaseEmailAuth('signin')">Sign In</button>
+                    <button class="firebase-action-btn" onclick="firebaseEmailAuth('signup')">Sign Up</button>
+                </div>
+            </div>
+
+            <div class="login-help">
+                <span class="login-link" id="toggle-client-id-link" onclick="toggleOverlayConfigPanel()" data-i18n="login.setupAuth">Set up Auth</span>
+            </div>
+
+            <div id="overlay-config-panel" class="overlay-config-panel" style="display: none;">
+                <div class="config-tab-row">
+                    <button class="config-tab-btn active" id="config-tab-discord" onclick="switchConfigTab('discord')">Discord</button>
+                    <button class="config-tab-btn" id="config-tab-firebase" onclick="switchConfigTab('firebase')">Firebase</button>
+                </div>
+
+                <div id="config-area-discord" class="config-content-panel" style="display: block;">
+                    <div class="login-label" style="margin-bottom: 6px; font-size: 10px; color: #5865F2;">Discord Client ID</div>
+                    <input type="text" id="config-discord-client-id" class="login-input" style="width: 100%; font-size: 11px; padding: 8px; margin-bottom: 8px; box-sizing: border-box;" placeholder="Discord Client ID">
+                    <button class="login-btn" style="padding: 8px; font-size: 11px; margin-bottom: 8px; box-shadow: none; width: 100%; background: #5865F2; color: white;" onclick="saveConfigParam('discord')" data-i18n="login.saveDiscord">Save Discord Config</button>
+                    <div style="font-size: 9px; color: var(--text-muted); line-height: 1.35;" data-i18n="login.discordHelp">Create a Discord developer app. Set redirect URI to this page's URL (e.g. <code>http://localhost:5500/</code>).</div>
+                </div>
+
+                <div id="config-area-firebase" class="config-content-panel" style="display: none;">
+                    <div class="login-label" style="margin-bottom: 6px; font-size: 10px; color: #FFCA28;">Firebase SDK Configuration (JSON)</div>
+                    <textarea id="config-firebase-json" class="login-input" style="width: 100%; font-size: 10px; padding: 8px; margin-bottom: 8px; box-sizing: border-box; height: 70px; font-family: monospace;" placeholder='{ "apiKey": "...", "authDomain": "..." }'></textarea>
+                    <button class="login-btn" style="padding: 8px; font-size: 11px; margin-bottom: 8px; box-shadow: none; width: 100%; background: #FFCA28; color: #039BE5;" onclick="saveConfigParam('firebase')" data-i18n="login.saveFirebase">Save Firebase Config</button>
+                    <div style="font-size: 9px; color: var(--text-muted); line-height: 1.35;" data-i18n="login.firebaseHelp">Paste your web application configuration JSON dictionary. Make sure to enable Email/Password Sign-In in Firebase Console Auth console.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gameplay Scripts -->
+    <script>
+        // --- Internationalization ---
+        let currentLang = localStorage.getItem('marci_language') || 'en';
+
+        const I18N = {
+            en: {
+                tabs: { upgrades: 'Upgrades', stats: 'Statistics', achievements: 'Achievements', targets: 'Targets', settings: 'Settings' },
+                header: { news: 'News', tickerDefault: 'Marci awaits your warm, friendly headpats.', guest: 'Guest', accountOptions: 'Account Options', toggleAudio: 'Toggle Audio Synthesizer', saveManually: 'Save Progress Manually', saveProgress: 'Save Progress', switchProfile: 'Switch Profile', logOut: 'Log Out' },
+                patCounter: { pats: 'pats', perSecond: 'per second:' },
+                sections: { availableUpgrades: 'Available Upgrades', gameStats: 'Game Stats', achievements: 'Achievements', whoToPet: 'Change Theme', settings: 'Settings', buildingsStore: 'Buildings Store' },
+                stats: { currentHeadpats: 'Current Headpats', cumulativeHeadpats: 'Cumulative Headpats', totalClicks: 'Total Clicks', hps: 'Headpats Per Second (HPS)', hpc: 'Headpats Per Click (HPC)', timePlayed: 'Time Played' },
+                settings: { language: 'Language', saveGame: 'Save Game State', exportSave: 'Export Save Data', importSave: 'Import Save Data', resetGame: 'Wipe Save / Reset Game', authSetup: 'Authentication Setup', authSetupDesc: 'Authentication credentials (Google, Discord, Firebase) are configured directly on the main Login Screen setup panel.' },
+                multiplier: { max: 'Max' },
+                upgrades: { noUpgrades: 'No upgrades available to buy.' },
+                achievementsUi: { percentUnlocked: '{percent}% Unlocked ({unlocked}/{total})', unlocked: '🔓 UNLOCKED', locked: '🔒 LOCKED', hidden: '???' },
+                tooltip: { cost: 'Cost: {cost} pats', eachGives: 'Each gives: +{hps} HPS', ownedGives: '{owned} owned gives: +{total} HPS', unlockAt: 'Unlock at {cost} total pats' },
+                toast: { achievementUnlocked: 'Achievement Unlocked!' },
+                time: { sec: 's', min: 'm', hr: 'h' },
+                login: { subtitle: 'Premium Headpat Simulator', enterUsername: 'Enter Username', usernamePlaceholder: 'e.g. Joel', startPatting: 'Start Patting', orSignIn: 'Or Sign In With', continueDiscord: 'Continue with Discord', signInFirebase: 'Sign In with Email (Firebase)', firebaseAuth: 'Firebase Auth', emailPlaceholder: 'Email address', passwordPlaceholder: 'Password', logIn: 'Log In', signUp: 'Sign Up', switchProfile: 'Switch Profile', setupAuth: '⚙️ Setup Real Authentication', closeSetup: '✕ Close Setup Panel', saveDiscord: 'Save Discord Config', saveFirebase: 'Save Firebase Config', discordHelp: 'Create a Discord developer app. Set redirect URI to this page\'s URL (e.g. http://localhost:5500/).', firebaseHelp: 'Paste your web application configuration JSON dictionary. Make sure to enable Email/Password Sign-In in Firebase Console Auth console.' },
+                alerts: { progressSaved: 'Progress saved successfully!', discordSaved: 'Discord Client ID saved!', discordCleared: 'Discord Client ID cleared.', firebaseCleared: 'Firebase configuration cleared.', firebaseSaved: 'Firebase configuration saved and initialized!', firebaseInvalid: 'Invalid Firebase configuration: missing apiKey!', firebaseParseFail: 'Failed to parse Firebase JSON config: {msg}', discordNeedsId: 'Discord login requires a Client ID.\nClick ⚙️ Setup Real Authentication below to configure it.', enterEmailPassword: 'Please enter both email and password!', firebaseNotConfigured: 'Firebase is not configured yet.\nClick ⚙️ Setup Real Authentication below to add your Firebase config.', firebaseRegSuccess: 'Firebase Registration Successful!', firebaseRegFail: 'Firebase Registration Failed: {msg}', firebaseLoginFail: 'Firebase Login Failed: {msg}', enterUsername: 'Please enter a username!', googleSignInFail: 'Google sign-in failed. Please use Name login.', noSaveExport: 'No save data found to export!', saveExported: 'Your save data string has been generated and COPIED to your clipboard!\nSave it somewhere safe.', importPrompt: 'Paste your exported save data string here:', invalidSave: 'Invalid save string!', parseSaveFail: 'Failed to parse save string. Please ensure it was copied correctly.', resetConfirm1: 'Are you absolutely sure you want to WIPE all progress and reset Marci Clicker for user "{user}"?', resetConfirm2: 'This is a permanent action! You will lose your achievements, pat counts, and upgrades. Proceed?' },
+                buildings: { tenderTouch: { name: 'Tender Touch', desc: 'A gentle stroke of Marci\'s hair.' }, neighbor: { name: 'Friendly Neighbor', desc: 'Recruit neighbors to lend a hand.' }, mechanical: { name: 'Mechanical Patter', desc: 'A gear-driven piston patter.' }, velvetGlove: { name: 'Velvet Glove', desc: 'Extraordinarily soft patting gloves.' }, dojo: { name: 'Headpat Dojo', desc: 'Train masters in the ultimate patting stance.' }, quantumHand: { name: 'Quantum Hand', desc: 'Pats Marci across multiple dimensions.' }, portal: { name: 'Portal to Patland', desc: 'Open a rift to the glorious Headpat Dimension.' }, cosmicBlessing: { name: 'Cosmic Blessing', desc: 'The stars align to pat Marci from the heavens.' } },
+                upgradeDefs: { soft_comb: { name: 'Coarse Comb', desc: 'Increases click power by +1.' }, gold_comb: { name: 'Golden Comb', desc: 'Increases click power by +4.' }, tender_double: { name: 'Delicate Fingers', desc: 'Tender Touch is twice as efficient.' }, neighbor_double: { name: 'Block Party', desc: 'Friendly Neighbors are twice as efficient.' }, mechanical_double: { name: 'Turbo Springs', desc: 'Mechanical Patters are twice as efficient.' }, velvet_double: { name: 'Silk Linings', desc: 'Velvet Gloves are twice as efficient.' }, dojo_double: { name: 'Black Belt Patting', desc: 'Headpat Dojos are twice as efficient.' }, quantum_double: { name: 'Multiverse Synthesis', desc: 'Quantum Hands are twice as efficient.' }, portal_double: { name: 'Stargate Alignment', desc: 'Portals to Patland are twice as efficient.' }, cosmic_double: { name: 'Nova Explosion', desc: 'Cosmic Blessings are twice as efficient.' }, click_synergy_1: { name: 'Patter Synergy I', desc: 'Clicks gain +1% of your overall HPS.' }, click_synergy_2: { name: 'Patter Synergy II', desc: 'Clicks gain +2% more of your overall HPS.' } },
+                achievementDefs: { first_pat: { name: 'Friendly Greeting', desc: 'Give Marci his first headpat.' }, pats_100: { name: 'Best Friend', desc: 'Give 100 cumulative headpats.' }, pats_10k: { name: 'Patting Machine', desc: 'Give 10,000 cumulative headpats.' }, pats_10m: { name: 'Ascended Patter', desc: 'Give 10,000,000 cumulative headpats.' }, clicks_100: { name: 'Finger Athlete', desc: 'Manually click Marci 100 times.' }, clicks_1000: { name: 'Keyboard Destroyer', desc: 'Manually click Marci 1,000 times.' }, tender_15: { name: 'Kind Heart', desc: 'Own 15 Tender Touches.' }, neighbor_10: { name: 'Social Butterfly', desc: 'Own 10 Friendly Neighbors.' }, mechanical_10: { name: 'Piston Power', desc: 'Own 10 Mechanical Patters.' }, portal_1: { name: 'Rift Opener', desc: 'Build your first Portal to Patland.' }, cosmic_1: { name: 'Chosen One', desc: 'Receive a Cosmic Blessing.' }, hps_50: { name: 'Warm Breeze', desc: 'Reach 50 Headpats/sec.' }, hps_5000: { name: 'Gale Force Comfort', desc: 'Reach 5,000 Headpats/sec.' } },
+                news: ["Marci looks up at you with pure joy.", "Local news: 'Spam clicking has reached record highs.'", "Headpat demand rises exponentially. Glove manufacturers rejoice.", "Spotted: Neighbors queueing up around the block to pat Marci.", "Friction from mechanical patters creates static electricity warnings.", "The Headpat Dojo releases a new bestseller: 'The Soft Palm Philosophy'.", "Quantum physicists declare: Marci is happy in at least 8 dimensions.", "Spacetime rift releases disembodied, comforting hands.", "Galaxy alignment creates gravitational force that acts like a gentle ruffle of hair.", "Marci's hair declared 'Softest Material in the Universe'.", "You are nominated for the Nobel Peace Prize in Headpatting.", "Study confirms: Giving Marci headpats raises user serotonin levels."]
+            },
+            hu: {
+                tabs: { upgrades: 'Fejlesztések', stats: 'Statisztikák', achievements: 'Teljesítmények', targets: 'Célpontok', settings: 'Beállítások' },
+                header: { news: 'Hírek', tickerDefault: 'Marci meleg, barátságos fejsimításokra vár.', guest: 'Vendég', accountOptions: 'Fiókbeállítások', toggleAudio: 'Hang be/ki', saveManually: 'Mentés kézileg', saveProgress: 'Haladás mentése', switchProfile: 'Profil váltás', logOut: 'Kijelentkezés' },
+                patCounter: { pats: 'simítás', perSecond: 'másodpercenként:' },
+                sections: { availableUpgrades: 'Elérhető fejlesztések', gameStats: 'Játékstatisztikák', achievements: 'Teljesítmények', whoToPet: 'Téma módosítása', settings: 'Beállítások', buildingsStore: 'Épületek boltja' },
+                stats: { currentHeadpats: 'Jelenlegi fejsimítások', cumulativeHeadpats: 'Összes fejsimítás', totalClicks: 'Összes kattintás', hps: 'Fejsimítás/másodperc (HPS)', hpc: 'Fejsimítás/kattintás (HPC)', timePlayed: 'Játékidő' },
+                settings: { language: 'Nyelv', saveGame: 'Játékállapot mentése', exportSave: 'Mentés exportálása', importSave: 'Mentés importálása', resetGame: 'Mentés törlése / újraindítás', authSetup: 'Hitelesítés beállítása', authSetupDesc: 'A hitelesítési adatok (Google, Discord, Firebase) közvetlenül a bejelentkezési képernyő beállítási paneljén konfigurálhatók.' },
+                multiplier: { max: 'Max' },
+                upgrades: { noUpgrades: 'Nincs megvásárolható fejlesztés.' },
+                achievementsUi: { percentUnlocked: '{percent}% feloldva ({unlocked}/{total})', unlocked: '🔓 FELOLDVA', locked: '🔒 ZÁROLVA', hidden: '???' },
+                tooltip: { cost: 'Ár: {cost} simítás', eachGives: 'Egyenként: +{hps} HPS', ownedGives: '{owned} db összesen: +{total} HPS', unlockAt: 'Feloldás {cost} összes simításnál' },
+                toast: { achievementUnlocked: 'Teljesítmény feloldva!' },
+                time: { sec: 'mp', min: 'p', hr: 'ó' },
+                login: { subtitle: 'Prémium fejsimító szimulátor', enterUsername: 'Felhasználónév megadása', usernamePlaceholder: 'pl. Joel', startPatting: 'Simítás indítása', orSignIn: 'Vagy jelentkezz be', continueDiscord: 'Folytatás Discorddal', signInFirebase: 'Bejelentkezés e-maillel (Firebase)', firebaseAuth: 'Firebase hitelesítés', emailPlaceholder: 'E-mail cím', passwordPlaceholder: 'Jelszó', logIn: 'Bejelentkezés', signUp: 'Regisztráció', switchProfile: 'Profil váltás', setupAuth: '⚙️ Valódi hitelesítés beállítása', closeSetup: '✕ Beállítási panel bezárása', saveDiscord: 'Discord beállítások mentése', saveFirebase: 'Firebase beállítások mentése', discordHelp: 'Hozz létre egy Discord fejlesztői alkalmazást. Állítsd be az átirányítási URI-t erre az oldalra (pl. http://localhost:5500/).', firebaseHelp: 'Illeszd be a webalkalmazás konfigurációs JSON-ját. Engedélyezd az e-mail/jelszó bejelentkezést a Firebase Console-ban.' },
+                alerts: { progressSaved: 'Haladás sikeresen mentve!', discordSaved: 'Discord Client ID mentve!', discordCleared: 'Discord Client ID törölve.', firebaseCleared: 'Firebase konfiguráció törölve.', firebaseSaved: 'Firebase konfiguráció mentve és inicializálva!', firebaseInvalid: 'Érvénytelen Firebase konfiguráció: hiányzó apiKey!', firebaseParseFail: 'Firebase JSON feldolgozása sikertelen: {msg}', discordNeedsId: 'A Discord bejelentkezéshez Client ID szükséges.\nKattints az alábbi ⚙️ Valódi hitelesítés beállítása linkre.', enterEmailPassword: 'Add meg az e-mailt és a jelszót!', firebaseNotConfigured: 'A Firebase még nincs beállítva.\nKattints az alábbi ⚙️ Valódi hitelesítés beállítása linkre.', firebaseRegSuccess: 'Firebase regisztráció sikeres!', firebaseRegFail: 'Firebase regisztráció sikertelen: {msg}', firebaseLoginFail: 'Firebase bejelentkezés sikertelen: {msg}', enterUsername: 'Add meg a felhasználónevet!', googleSignInFail: 'Google bejelentkezés sikertelen. Használd a névvel való bejelentkezést.', noSaveExport: 'Nincs exportálható mentés!', saveExported: 'A mentési adat generálva és a vágólapra másolva!\nTárold biztonságos helyen.', importPrompt: 'Illeszd be az exportált mentési adatot:', invalidSave: 'Érvénytelen mentési adat!', parseSaveFail: 'A mentési adat feldolgozása sikertelen. Ellenőrizd, hogy helyesen másoltad-e.', resetConfirm1: 'Biztosan törölni szeretnéd az összes haladást és újraindítani a Marci Clickert a(z) "{user}" felhasználónál?', resetConfirm2: 'Ez végleges művelet! Elveszíted a teljesítményeket, simításokat és fejlesztéseket. Folytatod?' },
+                buildings: { tenderTouch: { name: 'Gyengéd érintés', desc: 'Egy finom simítás Marci haján.' }, neighbor: { name: 'Barátságos szomszéd', desc: 'Szerezz szomszédokat segítségül.' }, mechanical: { name: 'Mechanikus simító', desc: 'Fogaskerekes dugattyús simító.' }, velvetGlove: { name: 'Bársonykesztyű', desc: 'Rendkívül puha simítókesztyűk.' }, dojo: { name: 'Fejsimító dojo', desc: 'Képezz mesterembereket a tökéletes simító pózban.' }, quantumHand: { name: 'Kvantumkéz', desc: 'Marci simítása több dimenzióban egyszerre.' }, portal: { name: 'Kapu Patföldre', desc: 'Nyiss rést a dicsőséges Fejsimító Dimenzióba.' }, cosmicBlessing: { name: 'Kozmikus áldás', desc: 'A csillagok összeállnak, hogy az égből simítsák Marcit.' } },
+                upgradeDefs: { soft_comb: { name: 'Durva fésű', desc: 'Kattintási erő +1.' }, gold_comb: { name: 'Arany fésű', desc: 'Kattintási erő +4.' }, tender_double: { name: 'Finom ujjak', desc: 'A Gyengéd érintés kétszer olyan hatékony.' }, neighbor_double: { name: 'Utcabál', desc: 'A Barátságos szomszédok kétszer olyan hatékonyak.' }, mechanical_double: { name: 'Turbórugók', desc: 'A Mechanikus simítók kétszer olyan hatékonyak.' }, velvet_double: { name: 'Selyembélések', desc: 'A Bársonykesztyűk kétszer olyan hatékonyak.' }, dojo_double: { name: 'Fekete öves simítás', desc: 'A Fejsimító dojók kétszer olyan hatékonyak.' }, quantum_double: { name: 'Multiverzum-szintézis', desc: 'A Kvantumkezek kétszer olyan hatékonyak.' }, portal_double: { name: 'Csillagkapu igazítás', desc: 'A Patföld kapui kétszer olyan hatékonyak.' }, cosmic_double: { name: 'Nova-robbanás', desc: 'A Kozmikus áldások kétszer olyan hatékonyak.' }, click_synergy_1: { name: 'Simító szinergia I', desc: 'A kattintások +1%-ot kapnak az összes HPS-ből.' }, click_synergy_2: { name: 'Simító szinergia II', desc: 'A kattintások további +2%-ot kapnak az összes HPS-ből.' } },
+                achievementDefs: { first_pat: { name: 'Barátságos üdvözlés', desc: 'Add Marci első fejsimítását.' }, pats_100: { name: 'Legjobb barát', desc: 'Adj 100 összesített fejsimítást.' }, pats_10k: { name: 'Simítógép', desc: 'Adj 10 000 összesített fejsimítást.' }, pats_10m: { name: 'Felemelkedett simító', desc: 'Adj 10 000 000 összesített fejsimítást.' }, clicks_100: { name: 'Ujjatléta', desc: 'Kattints Marcira kézzel 100-szor.' }, clicks_1000: { name: 'Billentyűzetromboló', desc: 'Kattints Marcira kézzel 1000-szer.' }, tender_15: { name: 'Jó szív', desc: 'Legyen 15 Gyengéd érintésed.' }, neighbor_10: { name: 'Társasági pillangó', desc: 'Legyen 10 Barátságos szomszédod.' }, mechanical_10: { name: 'Dugattyúerő', desc: 'Legyen 10 Mechanikus simítód.' }, portal_1: { name: 'Réstörő', desc: 'Építsd meg az első Kaput Patföldre.' }, cosmic_1: { name: 'Kiválasztott', desc: 'Kapj egy Kozmikus áldást.' }, hps_50: { name: 'Meleg szellő', desc: 'Érj el 50 fejsimítás/mp-t.' }, hps_5000: { name: 'Viharszél kényelem', desc: 'Érj el 5000 fejsimítás/mp-t.' } },
+                news: ["Marci tiszta örömmel néz fel rád.", "Helyi hírek: 'A spamelő kattintás rekordmagasságba emelkedett.'", "A fejsimítás iránti kereslet exponenciálisan nő. A kesztyűgyártók örülnek.", "Látták: Szomszédok sorba állnak, hogy simítsák Marcit.", "A mechanikus simítók súrlódása statikus áram figyelmeztetéseket okoz.", "A Fejsimító dojo új bestsellert ad ki: 'A puha tenyér filozófiája'.", "Kvantumfizikusok bejelentik: Marci legalább 8 dimenzióban boldog.", "Az időtér-rés test nélküli, megnyugtató kezeket enged szabadjára.", "Galaxis-együttállás gravitációs erőt hoz létre, mint egy finom hajsimítás.", "Marci haját 'Az univerzum legpuhább anyagának' nyilvánítják.", "Nobel-békedíjra jelölnek a fejsimítás kategóriában.", "Tanulmány megerősíti: Marci simítása növeli a felhasználó szerotonin-szintjét."]
+            },
+            de: {
+                tabs: { upgrades: 'Upgrades', stats: 'Statistiken', achievements: 'Erfolge', targets: 'Ziele', settings: 'Einstellungen' },
+                header: { news: 'Neuigkeiten', tickerDefault: 'Marci wartet auf deine warmen, freundlichen Kopfstreicheleinheiten.', guest: 'Gast', accountOptions: 'Kontoeinstellungen', toggleAudio: 'Ton ein/aus', saveManually: 'Manuell speichern', saveProgress: 'Fortschritt speichern', switchProfile: 'Profil wechseln', logOut: 'Abmelden' },
+                patCounter: { pats: 'Streicheleinheiten', perSecond: 'pro Sekunde:' },
+                sections: { availableUpgrades: 'Verfügbare Upgrades', gameStats: 'Spielstatistiken', achievements: 'Erfolge', whoToPet: 'Thema ändern', settings: 'Einstellungen', buildingsStore: 'Gebäude-Shop' },
+                stats: { currentHeadpats: 'Aktuelle Kopfstreicheleinheiten', cumulativeHeadpats: 'Gesamte Kopfstreicheleinheiten', totalClicks: 'Gesamtklicks', hps: 'Kopfstreicheleinheiten/Sek. (HPS)', hpc: 'Kopfstreicheleinheiten/Klick (HPC)', timePlayed: 'Spielzeit' },
+                settings: { language: 'Sprache', saveGame: 'Spielstand speichern', exportSave: 'Speicherstand exportieren', importSave: 'Speicherstand importieren', resetGame: 'Speicher löschen / Neustart', authSetup: 'Authentifizierung einrichten', authSetupDesc: 'Authentifizierungsdaten (Google, Discord, Firebase) werden direkt im Einrichtungsbereich des Anmeldebildschirms konfiguriert.' },
+                multiplier: { max: 'Max' },
+                upgrades: { noUpgrades: 'Keine Upgrades zum Kaufen verfügbar.' },
+                achievementsUi: { percentUnlocked: '{percent}% freigeschaltet ({unlocked}/{total})', unlocked: '🔓 FREIGESCHALTET', locked: '🔒 GESPERRT', hidden: '???' },
+                tooltip: { cost: 'Kosten: {cost} Streicheleinheiten', eachGives: 'Jedes gibt: +{hps} HPS', ownedGives: '{owned} im Besitz geben: +{total} HPS', unlockAt: 'Freischalten bei {cost} Gesamt-Streicheleinheiten' },
+                toast: { achievementUnlocked: 'Erfolg freigeschaltet!' },
+                time: { sec: 's', min: 'm', hr: 'h' },
+                login: { subtitle: 'Premium Kopfstreichel-Simulator', enterUsername: 'Benutzername eingeben', usernamePlaceholder: 'z.B. Joel', startPatting: 'Streicheln starten', orSignIn: 'Oder anmelden mit', continueDiscord: 'Mit Discord fortfahren', signInFirebase: 'Mit E-Mail anmelden (Firebase)', firebaseAuth: 'Firebase-Authentifizierung', emailPlaceholder: 'E-Mail-Adresse', passwordPlaceholder: 'Passwort', logIn: 'Anmelden', signUp: 'Registrieren', switchProfile: 'Profil wechseln', setupAuth: '⚙️ Echte Authentifizierung einrichten', closeSetup: '✕ Einrichtungsbereich schließen', saveDiscord: 'Discord-Konfiguration speichern', saveFirebase: 'Firebase-Konfiguration speichern', discordHelp: 'Erstelle eine Discord-Entwickler-App. Setze die Redirect-URI auf diese Seite (z.B. http://localhost:5500/).', firebaseHelp: 'Füge deine Web-App-Konfigurations-JSON ein. Aktiviere E-Mail/Passwort-Anmeldung in der Firebase Console.' },
+                alerts: { progressSaved: 'Fortschritt erfolgreich gespeichert!', discordSaved: 'Discord Client ID gespeichert!', discordCleared: 'Discord Client ID gelöscht.', firebaseCleared: 'Firebase-Konfiguration gelöscht.', firebaseSaved: 'Firebase-Konfiguration gespeichert und initialisiert!', firebaseInvalid: 'Ungültige Firebase-Konfiguration: apiKey fehlt!', firebaseParseFail: 'Firebase-JSON konnte nicht verarbeitet werden: {msg}', discordNeedsId: 'Discord-Anmeldung benötigt eine Client ID.\nKlicke unten auf ⚙️ Echte Authentifizierung einrichten.', enterEmailPassword: 'Bitte E-Mail und Passwort eingeben!', firebaseNotConfigured: 'Firebase ist noch nicht konfiguriert.\nKlicke unten auf ⚙️ Echte Authentifizierung einrichten.', firebaseRegSuccess: 'Firebase-Registrierung erfolgreich!', firebaseRegFail: 'Firebase-Registrierung fehlgeschlagen: {msg}', firebaseLoginFail: 'Firebase-Anmeldung fehlgeschlagen: {msg}', enterUsername: 'Bitte Benutzername eingeben!', googleSignInFail: 'Google-Anmeldung fehlgeschlagen. Bitte Namens-Anmeldung verwenden.', noSaveExport: 'Keine Speicherdaten zum Exportieren gefunden!', saveExported: 'Dein Speicherstring wurde erstellt und in die Zwischenablage KOPIERT!\nBewahre ihn sicher auf.', importPrompt: 'Füge deinen exportierten Speicherstring hier ein:', invalidSave: 'Ungültiger Speicherstring!', parseSaveFail: 'Speicherstring konnte nicht verarbeitet werden. Bitte prüfe die Kopie.', resetConfirm1: 'Bist du sicher, dass du ALLEN Fortschritt löschen und Marci Clicker für Benutzer "{user}" zurücksetzen willst?', resetConfirm2: 'Dies ist endgültig! Du verlierst Erfolge, Streicheleinheiten und Upgrades. Fortfahren?' },
+                buildings: { tenderTouch: { name: 'Zärtliche Berührung', desc: 'Ein sanfter Strich durch Marcis Haar.' }, neighbor: { name: 'Freundlicher Nachbar', desc: 'Rekrutiere Nachbarn zur Hilfe.' }, mechanical: { name: 'Mechanischer Streichler', desc: 'Ein zahnradgetriebener Kolben-Streichler.' }, velvetGlove: { name: 'Samthandschuh', desc: 'Außergewöhnlich weiche Streichhandschuhe.' }, dojo: { name: 'Kopfstreichel-Dojo', desc: 'Trainiere Meister in der ultimativen Streichhaltung.' }, quantumHand: { name: 'Quantenhand', desc: 'Streichelt Marci in mehreren Dimensionen.' }, portal: { name: 'Portal nach Patland', desc: 'Öffne einen Riss zur glorreichen Kopfstreichel-Dimension.' }, cosmicBlessing: { name: 'Kosmischer Segen', desc: 'Die Sterne richten sich aus, um Marci vom Himmel zu streicheln.' } },
+                upgradeDefs: { soft_comb: { name: 'Grober Kamm', desc: 'Erhöht Klickkraft um +1.' }, gold_comb: { name: 'Goldener Kamm', desc: 'Erhöht Klickkraft um +4.' }, tender_double: { name: 'Zarte Finger', desc: 'Zärtliche Berührung ist doppelt so effizient.' }, neighbor_double: { name: 'Straßenfest', desc: 'Freundliche Nachbarn sind doppelt so effizient.' }, mechanical_double: { name: 'Turbofedern', desc: 'Mechanische Streichler sind doppelt so effizient.' }, velvet_double: { name: 'Seidenfutter', desc: 'Samthandschuhe sind doppelt so effizient.' }, dojo_double: { name: 'Schwarzgurt-Streicheln', desc: 'Kopfstreichel-Dojos sind doppelt so effizient.' }, quantum_double: { name: 'Multiversum-Synthese', desc: 'Quantenhände sind doppelt so effizient.' }, portal_double: { name: 'Stargate-Ausrichtung', desc: 'Portale nach Patland sind doppelt so effizient.' }, cosmic_double: { name: 'Nova-Explosion', desc: 'Kosmische Segnungen sind doppelt so effizient.' }, click_synergy_1: { name: 'Streichler-Synergie I', desc: 'Klicks erhalten +1% deiner gesamten HPS.' }, click_synergy_2: { name: 'Streichler-Synergie II', desc: 'Klicks erhalten weitere +2% deiner gesamten HPS.' } },
+                achievementDefs: { first_pat: { name: 'Freundliche Begrüßung', desc: 'Gib Marci seinen ersten Kopfstreichel.' }, pats_100: { name: 'Bester Freund', desc: 'Gib 100 kumulative Kopfstreicheleinheiten.' }, pats_10k: { name: 'Streichmaschine', desc: 'Gib 10.000 kumulative Kopfstreicheleinheiten.' }, pats_10m: { name: 'Aufgestiegener Streichler', desc: 'Gib 10.000.000 kumulative Kopfstreicheleinheiten.' }, clicks_100: { name: 'Finger-Athlet', desc: 'Klicke Marci manuell 100 Mal.' }, clicks_1000: { name: 'Tastatur-Zerstörer', desc: 'Klicke Marci manuell 1.000 Mal.' }, tender_15: { name: 'Gutes Herz', desc: 'Besitze 15 Zärtliche Berührungen.' }, neighbor_10: { name: 'Sozialer Schmetterling', desc: 'Besitze 10 Freundliche Nachbarn.' }, mechanical_10: { name: 'Kolbenkraft', desc: 'Besitze 10 Mechanische Streichler.' }, portal_1: { name: 'Riss-Öffner', desc: 'Baue dein erstes Portal nach Patland.' }, cosmic_1: { name: 'Auserwählter', desc: 'Erhalte einen Kosmischen Segen.' }, hps_50: { name: 'Warmer Brise', desc: 'Erreiche 50 Kopfstreicheleinheiten/Sek.' }, hps_5000: { name: 'Sturm der Gemütlichkeit', desc: 'Erreiche 5.000 Kopfstreicheleinheiten/Sek.' } },
+                news: ["Marci schaut dich mit purer Freude an.", "Lokalnachrichten: 'Spam-Klicken erreicht Rekordhöhen.'", "Nachfrage nach Kopfstreicheleinheiten steigt exponentiell. Handschuhhersteller jubeln.", "Gesichtet: Nachbarn stehen Schlange, um Marci zu streicheln.", "Reibung mechanischer Streichler erzeugt Statik-Warnungen.", "Das Kopfstreichel-Dojo veröffentlicht einen Bestseller: 'Die weiche Handflächen-Philosophie'.", "Quantenphysiker erklären: Marci ist in mindestens 8 Dimensionen glücklich.", "Raumzeit-Riss setzt körperlose, tröstende Hände frei.", "Galaxien-Ausrichtung erzeugt Gravitationskraft wie ein sanftes Haarsträhnen.", "Marcis Haar wird als 'Weichstes Material im Universum' erklärt.", "Du wirst für den Nobel-Friedenspreis im Kopfstreicheln nominiert.", "Studie bestätigt: Marci zu streicheln erhöht den Serotoninspiegel."]
+            }
+        };
+
+        function t(key, params) {
+            const keys = key.split('.');
+            let val = I18N[currentLang];
+            for (const k of keys) {
+                val = val && val[k];
+            }
+            if (val === undefined) {
+                val = I18N.en;
+                for (const k of keys) {
+                    val = val && val[k];
+                }
+            }
+            if (typeof val !== 'string') return key;
+            if (!params) return val;
+            return val.replace(/\{(\w+)\}/g, (_, k) => (params[k] !== undefined ? params[k] : ''));
+        }
+
+        function buildingName(id) { return t(`buildings.${id}.name`); }
+        function buildingDesc(id) { return t(`buildings.${id}.desc`); }
+        function upgradeName(id) { return t(`upgradeDefs.${id}.name`); }
+        function upgradeDesc(id) { return t(`upgradeDefs.${id}.desc`); }
+        function achievementName(id) { return t(`achievementDefs.${id}.name`); }
+        function achievementDesc(id) { return t(`achievementDefs.${id}.desc`); }
+        function getNewsHeadlines() { return I18N[currentLang].news || I18N.en.news; }
+
+        function applyStaticTranslations() {
+            document.documentElement.lang = currentLang;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                if (el.id === 'header-username' && currentUser) return;
+                const key = el.getAttribute('data-i18n');
+                if (key) el.textContent = t(key);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (key) el.placeholder = t(key);
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                if (key) el.title = t(key);
+            });
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            const activeLangBtn = document.getElementById(`lang-${currentLang}`);
+            if (activeLangBtn) activeLangBtn.classList.add('active');
+
+            if (currentUser) {
+                updateProfileHeaderUI();
+            }
+        }
+
+        function setLanguage(lang) {
+            if (!I18N[lang]) return;
+            currentLang = lang;
+            localStorage.setItem('marci_language', lang);
+            applyStaticTranslations();
+            updateUI();
+            cycleTicker();
+            playSynthSound('click');
+        }
+        const THEME_PRESETS = {
+            marci: {
+                name: 'Marci',
+                idleUrl: 'Marci/idle.jpg',
+                clickUrl: 'Marci/petpet.gif',
+                accent: '#fbbf24'
+            },
+            aliz: {
+                name: 'Alíz',
+                idleUrl: 'Aliz/IMG_0690.jpeg',
+                clickUrl: 'Aliz/petpet.gif',
+                accent: '#f472b6'
+            },
+            biborka: {
+                name: 'Biborka',
+                idleUrl: 'Biborka/idle.jpg',
+                clickUrl: 'Biborka/petpet.gif',
+                accent: '#22d3ee'
+            },
+            deva: {
+                name: 'Déva',
+                idleUrl: 'Deva/idle.jpg',
+                clickUrl: 'Deva/petpet.gif',
+                accent: '#f9a8d4'
+            },
+            tanna: {
+                name: '🦈 T. Anna',
+                idleUrl: 'TAnna/idle.jpeg',
+                clickUrl: 'TAnna/petpet.gif',
+                accent: '#38bdf8'
+            }
+        };
+
+        function getThemePreset(themeId = game.themeId) {
+            return THEME_PRESETS[themeId] || THEME_PRESETS.marci;
+        }
+
+        function applyThemePreset(themeId = game.themeId) {
+            const normalizedTheme = (themeId || 'marci').toLowerCase();
+            const preset = getThemePreset(normalizedTheme);
+            game.themeId = normalizedTheme;
+            game.targetImgUrl = preset.idleUrl;
+            game.targetClickUrl = preset.clickUrl;
+            document.body.setAttribute('data-theme', normalizedTheme);
+
+            document.querySelectorAll('.theme-card').forEach(card => {
+                card.classList.toggle('active', card.id === `theme-card-${normalizedTheme}`);
+            });
+
+            const petImgIdle = document.getElementById('pet-img-idle');
+            const petImgClick = document.getElementById('pet-img-click');
+            if (petImgIdle && petImgClick) {
+                const version = Date.now();
+                const idleSrc = `${preset.idleUrl}?v=${version}`;
+                const clickSrc = `${preset.clickUrl}?v=${version}`;
+
+                // Preload idle image then assign to avoid showing alt text
+                const preIdle = new Image();
+                preIdle.onload = () => {
+                    petImgIdle.src = idleSrc;
+                    petImgIdle.alt = `${preset.name} Idle`;
+                    petImgIdle.style.display = 'block';
+                };
+                preIdle.onerror = () => {
+                    petImgIdle.alt = `${preset.name} Idle`;
+                    petImgIdle.style.display = 'block';
+                };
+                preIdle.src = idleSrc;
+
+                // Preload click image as well
+                const preClick = new Image();
+                preClick.onload = () => {
+                    petImgClick.src = clickSrc;
+                    petImgClick.alt = `${preset.name} Click`;
+                    petImgClick.style.display = 'none';
+                };
+                preClick.onerror = () => {
+                    petImgClick.alt = `${preset.name} Click`;
+                    petImgClick.style.display = 'none';
+                };
+                preClick.src = clickSrc;
+            }
+
+            const currentThemeLabel = document.getElementById('current-theme-label');
+            if (currentThemeLabel) {
+                currentThemeLabel.textContent = preset.name;
+            }
+
+            if (petAnimationTimer) {
+                clearTimeout(petAnimationTimer);
+                petAnimationTimer = null;
+            }
+        }
+
+        function setThemePreset(themeId) {
+            applyThemePreset(themeId);
+            updateUI();
+            playSynthSound('click');
+        }
+
+        // --- Game Database / Defs ---
+        const BUILDING_DEFS = {
+            tenderTouch: { name: 'Tender Touch', icon: '🖐', baseCost: 15, hps: 0.1, mult: 1, desc: 'A gentle stroke of Marci\'s hair.' },
+            neighbor: { name: 'Friendly Neighbor', icon: '🏡', baseCost: 100, hps: 1, mult: 1, desc: 'Recruit neighbors to lend a hand.' },
+            mechanical: { name: 'Mechanical Patter', icon: '⚙️', baseCost: 1100, hps: 8, mult: 1, desc: 'A gear-driven piston patter.' },
+            velvetGlove: { name: 'Velvet Glove', icon: '🧤', baseCost: 12000, hps: 47, mult: 1, desc: 'Extraordinarily soft patting gloves.' },
+            dojo: { name: 'Headpat Dojo', icon: '🥋', baseCost: 130000, hps: 260, mult: 1, desc: 'Train masters in the ultimate patting stance.' },
+            quantumHand: { name: 'Quantum Hand', icon: '🌀', baseCost: 1400000, hps: 1400, mult: 1, desc: 'Pats Marci across multiple dimensions.' },
+            portal: { name: 'Portal to Patland', icon: '🌌', baseCost: 20000000, hps: 7800, mult: 1, desc: 'Open a rift to the glorious Headpat Dimension.' },
+            cosmicBlessing: { name: 'Cosmic Blessing', icon: '✨', baseCost: 330000000, hps: 44000, mult: 1, desc: 'The stars align to pat Marci from the heavens.' }
+        };
+
+        const UPGRADE_DEFS = [
+            { id: 'soft_comb', name: 'Coarse Comb', cost: 100, icon: '🪮', desc: 'Increases click power by +1.', bought: false, effect: () => { game.baseHPC += 1; } },
+            { id: 'gold_comb', name: 'Golden Comb', cost: 800, icon: '👑', desc: 'Increases click power by +4.', bought: false, effect: () => { game.baseHPC += 4; } },
+            { id: 'tender_double', name: 'Delicate Fingers', cost: 250, icon: '💅', desc: 'Tender Touch is twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.tenderTouch.mult *= 2; } },
+            { id: 'neighbor_double', name: 'Block Party', cost: 2000, icon: '🎉', desc: 'Friendly Neighbors are twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.neighbor.mult *= 2; } },
+            { id: 'mechanical_double', name: 'Turbo Springs', cost: 12000, icon: '🔩', desc: 'Mechanical Patters are twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.mechanical.mult *= 2; } },
+            { id: 'velvet_double', name: 'Silk Linings', cost: 70000, icon: '🕸️', desc: 'Velvet Gloves are twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.velvetGlove.mult *= 2; } },
+            { id: 'dojo_double', name: 'Black Belt Patting', cost: 600000, icon: '🥇', desc: 'Headpat Dojos are twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.dojo.mult *= 2; } },
+            { id: 'quantum_double', name: 'Multiverse Synthesis', cost: 8500000, icon: '🔮', desc: 'Quantum Hands are twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.quantumHand.mult *= 2; } },
+            { id: 'portal_double', name: 'Stargate Alignment', cost: 120000000, icon: '💫', desc: 'Portals to Patland are twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.portal.mult *= 2; } },
+            { id: 'cosmic_double', name: 'Nova Explosion', cost: 1900000000, icon: '🎆', desc: 'Cosmic Blessings are twice as efficient.', bought: false, effect: () => { BUILDING_DEFS.cosmicBlessing.mult *= 2; } },
+            { id: 'click_synergy_1', name: 'Patter Synergy I', cost: 15000, icon: '🤝', desc: 'Clicks gain +1% of your overall HPS.', bought: false, effect: () => { game.clickPercentHps += 0.01; } },
+            { id: 'click_synergy_2', name: 'Patter Synergy II', cost: 500000, icon: '🤜', desc: 'Clicks gain +2% more of your overall HPS.', bought: false, effect: () => { game.clickPercentHps += 0.02; } }
+        ];
+
+        const ACHIEVEMENT_DEFS = [
+            { id: 'first_pat', name: 'Friendly Greeting', icon: '👋', desc: 'Give Marci his first headpat.', condition: (g) => g.totalPats >= 1 },
+            { id: 'pats_100', name: 'Best Friend', icon: '👦', desc: 'Give 100 cumulative headpats.', condition: (g) => g.totalPats >= 100 },
+            { id: 'pats_10k', name: 'Patting Machine', icon: '🤖', desc: 'Give 10,000 cumulative headpats.', condition: (g) => g.totalPats >= 10000 },
+            { id: 'pats_10m', name: 'Ascended Patter', icon: '😇', desc: 'Give 10,000,000 cumulative headpats.', condition: (g) => g.totalPats >= 10000000 },
+            { id: 'clicks_100', name: 'Finger Athlete', icon: '☝️', desc: 'Manually click Marci 100 times.', condition: (g) => g.stats.totalClicks >= 100 },
+            { id: 'clicks_1000', name: 'Keyboard Destroyer', icon: '⚡', desc: 'Manually click Marci 1,000 times.', condition: (g) => g.stats.totalClicks >= 1000 },
+            { id: 'tender_15', name: 'Kind Heart', icon: '🌸', desc: 'Own 15 Tender Touches.', condition: (g) => g.buildings.tenderTouch >= 15 },
+            { id: 'neighbor_10', name: 'Social Butterfly', icon: '📣', desc: 'Own 10 Friendly Neighbors.', condition: (g) => g.buildings.neighbor >= 10 },
+            { id: 'mechanical_10', name: 'Piston Power', icon: '🏭', desc: 'Own 10 Mechanical Patters.', condition: (g) => g.buildings.mechanical >= 10 },
+            { id: 'portal_1', name: 'Rift Opener', icon: '🌌', desc: 'Build your first Portal to Patland.', condition: (g) => g.buildings.portal >= 1 },
+            { id: 'cosmic_1', name: 'Chosen One', icon: '👽', desc: 'Receive a Cosmic Blessing.', condition: (g) => g.buildings.cosmicBlessing >= 1 },
+            { id: 'hps_50', name: 'Warm Breeze', icon: '🍃', desc: 'Reach 50 Headpats/sec.', condition: (g) => getHPS() >= 50 },
+            { id: 'hps_5000', name: 'Gale Force Comfort', icon: '🌪️', desc: 'Reach 5,000 Headpats/sec.', condition: (g) => getHPS() >= 5000 }
+        ];
+
+        // --- Core Game State ---
+        let game = {
+            score: 0,
+            totalPats: 0,
+            baseHPC: 1,
+            clickPercentHps: 0, // upgrades can add a % of HPS to click power
+            themeId: 'marci',
+            targetImgUrl: 'Marci/idle.jpg',
+            targetClickUrl: 'Marci/petpet.gif',
+            googleClientId: "", // Configured Google Client ID for real sign-in
+            discordClientId: "", // Discord OAuth Client ID
+            firebaseConfig: {}, // Firebase Config Object
+            buildings: {
+                tenderTouch: 0,
+                neighbor: 0,
+                mechanical: 0,
+                velvetGlove: 0,
+                dojo: 0,
+                quantumHand: 0,
+                portal: 0,
+                cosmicBlessing: 0
+            },
+            upgradesOwned: [],
+            achievementsUnlocked: [],
+            stats: {
+                totalClicks: 0,
+                timePlayed: 0
+            }
+        };
+
+        // --- UI Globals ---
+        let buyMult = 1; // 1, 10, 100, 'max'
+        let petAnimationTimer = null;
+        let audioEnabled = true;
+        let tickerInterval = null;
+
+        // --- Web Audio Synthesizer Setup ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSynthSound(type) {
+            if (!audioEnabled) return;
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(350, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(750, audioCtx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.08);
+                } else if (type === 'buy') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+                    osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.06); // C#5
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.12); // E5
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'achievement') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.06); // E5
+                    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.12); // G5
+                    osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.18); // C6
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.40);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.40);
+                }
+            } catch (e) {
+                console.error("Audio generation failed:", e);
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById("audio-toggle");
+            btn.innerHTML = audioEnabled ? "🔊" : "🔇";
+            btn.style.color = audioEnabled ? "var(--text-main)" : "var(--accent-red)";
+        }
+
+        // --- Game Logic Utilities ---
+        function getHPC() {
+            // Base HPC + a percentage of global HPS (synergy upgrade effect)
+            const bonus = Math.floor(getHPS() * game.clickPercentHps);
+            return game.baseHPC + bonus;
+        }
+
+        function getHPS() {
+            let total = 0;
+            for (let id in game.buildings) {
+                if (BUILDING_DEFS[id]) {
+                    total += game.buildings[id] * BUILDING_DEFS[id].hps * BUILDING_DEFS[id].mult;
+                }
+            }
+            // Round HPS to 1 decimal place to prevent floating issues
+            return Math.round(total * 10) / 10;
+        }
+
+        function getBuildingCurrentCost(buildingId) {
+            const b = BUILDING_DEFS[buildingId];
+            const owned = game.buildings[buildingId] || 0;
+            return Math.floor(b.baseCost * Math.pow(1.15, owned));
+        }
+
+        function getCostForMultiplier(buildingId, currentOwned, count) {
+            const b = BUILDING_DEFS[buildingId];
+            let total = 0;
+            if (count === 'max') {
+                let currentScore = game.score;
+                let hypotheticalOwned = currentOwned;
+                while (true) {
+                    let nextCost = Math.floor(b.baseCost * Math.pow(1.15, hypotheticalOwned));
+                    if (currentScore >= nextCost) {
+                        currentScore -= nextCost;
+                        total += nextCost;
+                        hypotheticalOwned++;
+                    } else {
+                        break;
+                    }
+                }
+                return { count: hypotheticalOwned - currentOwned, cost: total };
+            } else {
+                for (let i = 0; i < count; i++) {
+                    total += Math.floor(b.baseCost * Math.pow(1.15, currentOwned + i));
+                }
+                return { count: count, cost: total };
+            }
+        }
+
+        // --- Core UI Renderer ---
+        function updateUI() {
+            // Headpats Counters
+            document.getElementById("pat-count").textContent = Math.floor(game.score).toLocaleString() + " " + t('patCounter.pats');
+            document.getElementById("pat-speed").textContent = t('patCounter.perSecond') + " " + getHPS().toLocaleString();
+
+            // Stats tab
+            document.getElementById("stat-current-pats").textContent = Math.floor(game.score).toLocaleString();
+            document.getElementById("stat-total-pats").textContent = Math.floor(game.totalPats).toLocaleString();
+            document.getElementById("stat-total-clicks").textContent = game.stats.totalClicks.toLocaleString();
+            document.getElementById("stat-hps").textContent = getHPS().toLocaleString();
+            document.getElementById("stat-hpc").textContent = getHPC().toLocaleString();
+            document.getElementById("stat-time-played").textContent = formatTime(game.stats.timePlayed);
+
+            // Halo Speed / Scale dynamic mapping
+            const hps = getHPS();
+            const halo = document.getElementById("halo-glow");
+            const scale = 1 + Math.min(hps / 200, 0.4);
+            halo.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            halo.style.opacity = `${0.15 + Math.min(hps / 1000, 0.35)}`;
+
+            // Render Shop (Buildings)
+            renderBuildingsList();
+
+            // Render Upgrades Slot Grid
+            renderUpgradesStore();
+
+            // Render achievements tab stats
+            renderAchievementsPanel();
+        }
+
+        function formatTime(sec) {
+            if (sec < 60) return sec + t('time.sec');
+            const min = Math.floor(sec / 60);
+            const rSec = sec % 60;
+            if (min < 60) return min + t('time.min') + " " + rSec + t('time.sec');
+            const hrs = Math.floor(min / 60);
+            const rMin = min % 60;
+            return hrs + t('time.hr') + " " + rMin + t('time.min') + " " + rSec + t('time.sec');
+        }
+
+        // Render Buildings Store
+        function renderBuildingsList() {
+            const container = document.getElementById("buildings-container");
+            container.innerHTML = "";
+
+            for (let id in BUILDING_DEFS) {
+                const b = BUILDING_DEFS[id];
+                const owned = game.buildings[id] || 0;
+                
+                // Determine cost based on selector
+                const multInfo = getCostForMultiplier(id, owned, buyMult);
+                const showCost = multInfo.cost;
+                const buyAmount = multInfo.count;
+                
+                const affordable = game.score >= showCost && buyAmount > 0;
+                
+                // Unlock requirements (visible if player has bought any previous or reaches 70% of baseCost in totalPats)
+                const visible = game.totalPats >= b.baseCost * 0.7;
+
+                if (!visible) {
+                    // Locked Placeholder
+                    const row = document.createElement("div");
+                    row.className = "building-row locked";
+                    row.innerHTML = `
+                        <div class="building-info">
+                            <div class="building-icon">❓</div>
+                            <div class="building-details">
+                                <div class="building-name">${t('achievementsUi.hidden')}</div>
+                                <div class="building-cost">${t('tooltip.unlockAt', { cost: b.baseCost })}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                    continue;
+                }
+
+                const row = document.createElement("div");
+                row.className = `building-row ${affordable ? 'affordable' : ''}`;
+                row.onclick = () => buyBuilding(id);
+
+                // Tooltip info
+                const tooltipHtml = `
+                    <div class="tooltip">
+                        <div class="tooltip-title">${buildingName(id)}</div>
+                        <div class="tooltip-cost">${t('tooltip.cost', { cost: showCost.toLocaleString() })}</div>
+                        <div>"${buildingDesc(id)}"</div>
+                        <div style="margin-top: 6px; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px; color: var(--text-muted);">
+                            ${t('tooltip.eachGives', { hps: (b.hps * b.mult).toFixed(1) })}<br>
+                            ${t('tooltip.ownedGives', { owned, total: (owned * b.hps * b.mult).toLocaleString() })}
+                        </div>
+                    </div>
+                `;
+
+                row.innerHTML = `
+                    <div class="building-info">
+                        <div class="building-icon">${b.icon}</div>
+                        <div class="building-details">
+                            <div class="building-name">${buildingName(id)} <span style="font-size: 11px; color: var(--text-muted)">x${buyAmount}</span></div>
+                            <div class="building-cost">${showCost.toLocaleString()} ${t('patCounter.pats')}</div>
+                        </div>
+                    </div>
+                    <div class="building-count">${owned}</div>
+                    ${tooltipHtml}
+                `;
+
+                container.appendChild(row);
+            }
+        }
+
+        // Render Upgrade Store
+        function renderUpgradesStore() {
+            const container = document.getElementById("upgrades-container");
+            container.innerHTML = "";
+            let count = 0;
+
+            UPGRADE_DEFS.forEach((u) => {
+                // If already bought, don't show
+                if (game.upgradesOwned.includes(u.id)) return;
+
+                // Condition to display: visible if totalPats reached at least 50% of cost
+                if (game.totalPats < u.cost * 0.5) return;
+
+                count++;
+                const affordable = game.score >= u.cost;
+
+                const slot = document.createElement("div");
+                slot.className = "upgrade-slot";
+                if (!affordable) {
+                    slot.style.opacity = "0.55";
+                    slot.style.borderColor = "rgba(255,255,255,0.04)";
+                } else {
+                    slot.style.borderColor = "rgba(251, 191, 36, 0.3)";
+                }
+
+                slot.onclick = () => buyUpgrade(u.id);
+
+                const tooltipHtml = `
+                    <div class="tooltip">
+                        <div class="tooltip-title" style="color: var(--accent-purple);">${upgradeName(u.id)}</div>
+                        <div class="tooltip-cost" style="${affordable ? 'color: var(--accent-green);' : 'color: var(--accent-red);'}">${t('tooltip.cost', { cost: u.cost.toLocaleString() })}</div>
+                        <div style="font-size: 11px; line-height: 1.4;">${upgradeDesc(u.id)}</div>
+                    </div>
+                `;
+
+                slot.innerHTML = `
+                    <span>${u.icon}</span>
+                    ${tooltipHtml}
+                `;
+
+                container.appendChild(slot);
+            });
+
+            const msg = document.getElementById("no-upgrades-msg");
+            if (count === 0) {
+                msg.style.display = "block";
+            } else {
+                msg.style.display = "none";
+            }
+        }
+
+        // Render Achievements Panel
+        function renderAchievementsPanel() {
+            const container = document.getElementById("achievements-container");
+            container.innerHTML = "";
+
+            let unlockedCount = 0;
+
+            ACHIEVEMENT_DEFS.forEach((a) => {
+                const unlocked = game.achievementsUnlocked.includes(a.id);
+                if (unlocked) unlockedCount++;
+
+                const card = document.createElement("div");
+                card.className = `achievement-card ${unlocked ? '' : 'locked'}`;
+
+                const tooltipHtml = `
+                    <div class="tooltip">
+                        <div class="tooltip-title">${achievementName(a.id)}</div>
+                        <div style="font-size: 11px; line-height: 1.4;">${achievementDesc(a.id)}</div>
+                        <div style="margin-top: 4px; font-size: 10px; color: var(--accent-gold); font-weight: bold;">
+                            ${unlocked ? t('achievementsUi.unlocked') : t('achievementsUi.locked')}
+                        </div>
+                    </div>
+                `;
+
+                card.innerHTML = `
+                    <div class="icon">${unlocked ? a.icon : '🔒'}</div>
+                    <div style="font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                        ${unlocked ? achievementName(a.id) : t('achievementsUi.hidden')}
+                    </div>
+                    ${tooltipHtml}
+                `;
+
+                container.appendChild(card);
+            });
+
+            // Update percent
+            const percent = Math.round((unlockedCount / ACHIEVEMENT_DEFS.length) * 100);
+            document.getElementById("achievement-percent").textContent = t('achievementsUi.percentUnlocked', { percent, unlocked: unlockedCount, total: ACHIEVEMENT_DEFS.length });
+        }
+
+        // --- Interaction Handlers ---
+
+        // Switch Tabs
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".tab-content").forEach(content => content.classList.remove("active"));
+
+            const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (tabBtn) tabBtn.classList.add("active");
+            document.getElementById(`tab-${tabId}`).classList.add("active");
+            
+            playSynthSound('click');
+        }
+
+        function toggleSettingsDrawer() {
+            const body = document.getElementById('settings-drawer-body');
+            const arrow = document.getElementById('settings-drawer-arrow');
+            if (!body || !arrow) return;
+            body.classList.toggle('hidden');
+            arrow.textContent = body.classList.contains('hidden') ? '▸' : '▾';
+            playSynthSound('click');
+        }
+
+        // Set Buy Multiplier
+        function setBuyMult(mult, btnEl) {
+            buyMult = mult;
+            document.querySelectorAll(".mult-btn").forEach(btn => btn.classList.remove("active"));
+            btnEl.classList.add("active");
+            
+            playSynthSound('click');
+            updateUI();
+        }
+
+        // Click Marci Action
+        function handlePet(event) {
+            const hpc = getHPC();
+            game.score += hpc;
+            game.totalPats += hpc;
+            game.stats.totalClicks += 1;
+
+            // Trigger click audio Synthesizer
+            playSynthSound('click');
+
+            // Swap visibility
+            const petImgIdle = document.getElementById("pet-img-idle");
+            const petImgClick = document.getElementById("pet-img-click");
+            
+            if (petImgIdle && petImgClick) {
+                const preset = getThemePreset(game.themeId);
+                const idleUrl = game.targetImgUrl || preset.idleUrl;
+                const clickUrl = game.targetClickUrl || preset.clickUrl;
+                const version = Date.now();
+                petImgIdle.style.display = "none";
+                petImgClick.src = `${clickUrl}?v=${version}`;
+                petImgClick.alt = `${preset.name} Click`;
+                petImgClick.style.display = "block";
+
+                if (petAnimationTimer) {
+                    clearTimeout(petAnimationTimer);
+                }
+                petAnimationTimer = setTimeout(() => {
+                    petImgIdle.src = `${idleUrl}?v=${version}`;
+                    petImgIdle.alt = `${preset.name} Idle`;
+                    petImgIdle.style.display = "block";
+                    petImgClick.style.display = "none";
+                }, 600);
+            }
+
+            // Particle Spawn
+            const container = document.getElementById("pet-container");
+            const rect = container.getBoundingClientRect();
+            
+            // Client relative coordinates
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            spawnFloatingText(x, y, `+${hpc}`);
+            
+            // Spawn 2-3 colorful emojis in arcs
+            const emojiList = ['🖐', '❤️', '✨', '🌸', '💫', '💖'];
+            const randCount = Math.floor(Math.random() * 2) + 2;
+            for (let i = 0; i < randCount; i++) {
+                const randomEmoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+                spawnEmojiParticle(x, y, randomEmoji);
+            }
+
+            // Check achievements right away
+            checkAchievements();
+            updateUI();
+        }
+
+        // Spawn +1 Floating Numbers
+        function spawnFloatingText(x, y, text) {
+            const el = document.createElement("div");
+            el.className = "floating-text";
+            el.textContent = text;
+            
+            // Offset a bit to center
+            el.style.left = `${x - 10}px`;
+            el.style.top = `${y - 20}px`;
+
+            document.getElementById("pet-container").appendChild(el);
+            setTimeout(() => {
+                el.remove();
+            }, 700);
+        }
+
+        // Spawn Flying Emojis
+        function spawnEmojiParticle(x, y, emoji) {
+            const el = document.createElement("div");
+            el.className = "particle";
+            el.textContent = emoji;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+
+            // Random angle and distance trajectory
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.floor(Math.random() * 80) + 60;
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance - 20; // boost upwards
+            const rotation = Math.floor(Math.random() * 180) - 90;
+
+            el.style.setProperty('--dx', `${dx}px`);
+            el.style.setProperty('--dy', `${dy}px`);
+            el.style.setProperty('--rot', `${rotation}deg`);
+
+            document.getElementById("pet-container").appendChild(el);
+            setTimeout(() => {
+                el.remove();
+            }, 800);
+        }
+
+        // Buy Building Store
+        function buyBuilding(id) {
+            const owned = game.buildings[id] || 0;
+            const multInfo = getCostForMultiplier(id, owned, buyMult);
+            const totalCost = multInfo.cost;
+            const buyAmount = multInfo.count;
+
+            if (game.score >= totalCost && buyAmount > 0) {
+                game.score -= totalCost;
+                game.buildings[id] = owned + buyAmount;
+
+                playSynthSound('buy');
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        // Buy Upgrade
+        function buyUpgrade(id) {
+            const u = UPGRADE_DEFS.find(item => item.id === id);
+            if (u && game.score >= u.cost && !game.upgradesOwned.includes(id)) {
+                game.score -= u.cost;
+                game.upgradesOwned.push(id);
+                u.effect();
+
+                playSynthSound('buy');
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        // --- Achievement Milestone Engine ---
+        function checkAchievements() {
+            ACHIEVEMENT_DEFS.forEach((a) => {
+                // Skip if already unlocked
+                if (game.achievementsUnlocked.includes(a.id)) return;
+
+                // Evaluate condition
+                if (a.condition(game)) {
+                    game.achievementsUnlocked.push(a.id);
+                    triggerAchievementNotification(a);
+                }
+            });
+        }
+
+        function triggerAchievementNotification(achievement) {
+            // Play achievement synthesizer fanfare
+            playSynthSound('achievement');
+
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+
+            toast.innerHTML = `
+                <div class="toast-icon">${achievement.icon}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${t('toast.achievementUnlocked')}</div>
+                    <div class="toast-name">${achievementName(achievement.id)}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Animate out and remove after 4 seconds
+            setTimeout(() => {
+                toast.classList.add("fade-out");
+                setTimeout(() => {
+                    toast.remove();
+                }, 500);
+            }, 4000);
+        }
+
+        // --- Authentication & User Profiles ---
+        let currentUser = null;
+        let discordLoaded = false;
+        let firebaseInitialized = false;
+        const defaultGuestProfile = { username: 'Guest', avatar: '', id: 'guest', type: 'Local' };
+
+        function initDiscord() {
+            const globalDiscordId = localStorage.getItem("marci_global_discord_client_id");
+            if (globalDiscordId) {
+                game.discordClientId = globalDiscordId;
+            }
+        }
+
+        function initFirebase() {
+            try {
+                const globalFirebaseConfig = localStorage.getItem("marci_global_firebase_config");
+                if (globalFirebaseConfig) {
+                    game.firebaseConfig = JSON.parse(globalFirebaseConfig);
+                }
+
+                if (typeof firebase !== 'undefined' && game.firebaseConfig && game.firebaseConfig.apiKey) {
+                    if (firebase.apps.length === 0) {
+                        firebase.initializeApp(game.firebaseConfig);
+                    }
+                    firebaseInitialized = true;
+                } else {
+                    firebaseInitialized = false;
+                }
+            } catch (e) {
+                console.error("Firebase init failed:", e);
+                firebaseInitialized = false;
+            }
+        }
+
+        function toggleOverlayConfigPanel() {
+            const panel = document.getElementById("overlay-config-panel");
+            const link = document.getElementById("toggle-client-id-link");
+            if (panel.style.display === "none") {
+                panel.style.display = "block";
+                link.textContent = t('login.closeSetup');
+                
+                // Populate fields
+                document.getElementById("config-discord-client-id").value = game.discordClientId || "";
+                const fbConfigStr = localStorage.getItem("marci_global_firebase_config") || "";
+                document.getElementById("config-firebase-json").value = fbConfigStr ? JSON.stringify(JSON.parse(fbConfigStr), null, 2) : "";
+            } else {
+                panel.style.display = "none";
+                link.textContent = t('login.setupAuth');
+            }
+        }
+
+        function switchConfigTab(tabName) {
+            playSynthSound('click');
+            
+            // Deactivate all tabs & content panels
+            document.querySelectorAll(".config-tab-btn").forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".config-content-panel").forEach(panel => panel.style.display = "none");
+            
+            // Activate selected tab & content panel
+            document.getElementById(`config-tab-${tabName}`).classList.add("active");
+            document.getElementById(`config-area-${tabName}`).style.display = "block";
+        }
+
+        function saveConfigParam(paramType) {
+            playSynthSound('click');
+            
+            if (paramType === 'discord') {
+                const val = document.getElementById("config-discord-client-id").value.trim();
+                game.discordClientId = val;
+                if (val) {
+                    localStorage.setItem("marci_global_discord_client_id", val);
+                } else {
+                    localStorage.removeItem("marci_global_discord_client_id");
+                }
+                alert(val ? t('alerts.discordSaved') : t('alerts.discordCleared'));
+            } else if (paramType === 'firebase') {
+                const jsonText = document.getElementById("config-firebase-json").value.trim();
+                if (!jsonText) {
+                    localStorage.removeItem("marci_global_firebase_config");
+                    game.firebaseConfig = {};
+                    firebaseInitialized = false;
+                    alert(t('alerts.firebaseCleared'));
+                    return;
+                }
+                try {
+                    const parsed = JSON.parse(jsonText);
+                    if (parsed.apiKey) {
+                        localStorage.setItem("marci_global_firebase_config", JSON.stringify(parsed));
+                        game.firebaseConfig = parsed;
+                        initFirebase();
+                        alert(t('alerts.firebaseSaved'));
+                    } else {
+                        alert(t('alerts.firebaseInvalid'));
+                    }
+                } catch (e) {
+                    alert(t('alerts.firebaseParseFail', { msg: e.message }));
+                }
+            }
+        }
+
+        // --- Discord Login Handlers ---
+        function loginWithDiscordClick() {
+            playSynthSound('click');
+            if (game.discordClientId && game.discordClientId.trim() !== "") {
+                // Redirect to Discord OAuth
+                const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+                const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${game.discordClientId}&redirect_uri=${redirectUri}&response_type=token&scope=identify`;
+                window.location.href = discordAuthUrl;
+            } else {
+                alert(t('alerts.discordNeedsId'));
+            }
+        }
+
+        // --- Firebase Handlers ---
+        function toggleFirebaseForm() {
+            playSynthSound('click');
+            const panel = document.getElementById("firebase-form-panel");
+            panel.classList.toggle("active");
+        }
+
+        function firebaseEmailAuth(mode) {
+            playSynthSound('click');
+            const email = document.getElementById("firebase-email").value.trim();
+            const password = document.getElementById("firebase-password").value.trim();
+
+            if (!email || !password) {
+                alert(t('alerts.enterEmailPassword'));
+                return;
+            }
+
+            if (!firebaseInitialized) {
+                alert(t('alerts.firebaseNotConfigured'));
+                return;
+            }
+
+            if (mode === 'signup') {
+                firebase.auth().createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+                        alert(t('alerts.firebaseRegSuccess'));
+                        loginAsUser({
+                            username: email.split('@')[0],
+                            email: email,
+                            avatar: "",
+                            id: `firebase_${user.uid}`,
+                            type: 'Firebase'
+                        });
+                    })
+                    .catch((error) => {
+                        alert(t('alerts.firebaseRegFail', { msg: error.message }));
+                    });
+            } else {
+                firebase.auth().signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+                        loginAsUser({
+                            username: email.split('@')[0],
+                            email: email,
+                            avatar: "",
+                            id: `firebase_${user.uid}`,
+                            type: 'Firebase'
+                        });
+                    })
+                    .catch((error) => {
+                        alert(t('alerts.firebaseLoginFail', { msg: error.message }));
+                    });
+            }
+        }
+
+        function loginWithName() {
+            const input = document.getElementById("username-input");
+            const name = input.value.trim() || 'Guest';
+            playSynthSound('click');
+            loginAsUser({
+                username: name,
+                avatar: "",
+                id: 'guest',
+                type: 'Local'
+            });
+        }
+
+        function loginAsUser(profile) {
+            currentUser = profile || defaultGuestProfile;
+            const overlay = document.getElementById("login-overlay");
+            if (overlay) overlay.classList.add("hidden");
+            loadGameForUser(currentUser);
+            updateProfileHeaderUI();
+        }
+
+        function updateProfileHeaderUI() {
+            if (!currentUser) return;
+            
+            const avatarEl = document.getElementById("header-avatar");
+            const nameEl = document.getElementById("header-username");
+            const typeEl = document.getElementById("header-profile-type");
+            
+            nameEl.textContent = currentUser.username;
+            typeEl.textContent = currentUser.type;
+            
+            if (currentUser.avatar) {
+                avatarEl.style.backgroundImage = `url('${currentUser.avatar}')`;
+                avatarEl.textContent = "";
+            } else {
+                avatarEl.style.backgroundImage = "none";
+                avatarEl.textContent = currentUser.username.charAt(0).toUpperCase();
+                avatarEl.style.background = getGradientForString(currentUser.username);
+            }
+
+            // Sync input in settings if open
+            const clientIdInput = document.getElementById("google-client-id-input");
+            if (clientIdInput) {
+                clientIdInput.value = game.googleClientId || "";
+            }
+        }
+
+        function getGradientForString(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const colors = [
+                ["#3b82f6", "#1d4ed8"],
+                ["#8b5cf6", "#6d28d9"],
+                ["#ec4899", "#be185d"],
+                ["#10b981", "#047857"],
+                ["#f59e0b", "#b45309"],
+                ["#ef4444", "#b91c1c"]
+            ];
+            const idx = Math.abs(hash) % colors.length;
+            return `linear-gradient(135deg, ${colors[idx][0]}, ${colors[idx][1]})`;
+        }
+
+        function toggleProfileDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById("profile-dropdown");
+            dropdown.classList.toggle("active");
+        }
+
+        // Close profile dropdown when clicking outside
+        window.addEventListener("click", () => {
+            const dropdown = document.getElementById("profile-dropdown");
+            if (dropdown) dropdown.classList.remove("active");
+        });
+
+        function logoutUser() {
+            playSynthSound('click');
+            currentUser = defaultGuestProfile;
+            const overlay = document.getElementById("login-overlay");
+            if (overlay) overlay.classList.add("hidden");
+            resetGameStateToDefault();
+            updateUI();
+            updateProfileHeaderUI();
+        }
+
+        function openProfileChooser() {
+            playSynthSound('click');
+            const overlay = document.getElementById("login-overlay");
+            if (overlay) overlay.classList.add("hidden");
+        }
+
+        function renderProfilesListInOverlay() {
+            const container = document.getElementById("previous-profiles-container");
+            if (container) container.style.display = "none";
+        }
+
+        function saveGoogleClientId(val) {
+            const trimmed = val.trim();
+            game.googleClientId = trimmed;
+            if (trimmed) {
+                localStorage.setItem("marci_global_google_client_id", trimmed);
+            } else {
+                localStorage.removeItem("marci_global_google_client_id");
+            }
+            saveGame();
+            initGoogleSignIn();
+        }
+
+        // --- Google Login (Official vs. Mock chooser) ---
+        function loginWithGoogleClick() {
+            playSynthSound('click');
+            
+            if (gsiLoaded && game.googleClientId && game.googleClientId !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
+                try {
+                    google.accounts.id.prompt();
+                    return;
+                } catch (e) {
+                    console.error("GSI prompt failed, opening mock popup:", e);
+                }
+            }
+            
+            openMockGoogleChooser();
+        }
+
+        function handleGoogleCredentialResponse(response) {
+            try {
+                const base64Url = response.credential.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+
+                const payload = JSON.parse(jsonPayload);
+                loginAsUser({
+                    username: payload.name,
+                    email: payload.email,
+                    avatar: payload.picture,
+                    id: `google_${payload.sub}`,
+                    type: 'Google'
+                });
+            } catch (e) {
+                console.error("Failed to parse Google credential:", e);
+                alert(t('alerts.googleSignInFail'));
+            }
+        }
+
+        function openMockGoogleChooser() {
+            document.getElementById("google-chooser-modal").classList.add("active");
+        }
+
+        function closeMockGoogleChooser() {
+            document.getElementById("google-chooser-modal").classList.remove("active");
+        }
+
+        function loginWithMockGoogle(name, email, avatar) {
+            closeMockGoogleChooser();
+            loginAsUser({
+                username: name,
+                email: email,
+                avatar: avatar,
+                id: `mock_google_${name.toLowerCase().replace(/\s+/g, '_')}`,
+                type: 'Google (Demo)'
+            });
+        }
+
+        // --- Persistence / Save States ---
+        function saveGame() {
+            if (!currentUser) return;
+            const saveKey = `marci_clicker_save_${currentUser.id}`;
+            const saveData = {
+                score: game.score,
+                totalPats: game.totalPats,
+                baseHPC: game.baseHPC,
+                clickPercentHps: game.clickPercentHps,
+                themeId: game.themeId,
+                targetImgUrl: game.targetImgUrl,
+                targetClickUrl: game.targetClickUrl,
+                buildings: game.buildings,
+                upgradesOwned: game.upgradesOwned,
+                achievementsUnlocked: game.achievementsUnlocked,
+                stats: game.stats,
+                buildingsMult: {
+                    tenderTouch: BUILDING_DEFS.tenderTouch.mult,
+                    neighbor: BUILDING_DEFS.neighbor.mult,
+                    mechanical: BUILDING_DEFS.mechanical.mult,
+                    velvetGlove: BUILDING_DEFS.velvetGlove.mult,
+                    dojo: BUILDING_DEFS.dojo.mult,
+                    quantumHand: BUILDING_DEFS.quantumHand.mult,
+                    portal: BUILDING_DEFS.portal.mult,
+                    cosmicBlessing: BUILDING_DEFS.cosmicBlessing.mult
+                }
+            };
+            localStorage.setItem(saveKey, JSON.stringify(saveData));
+            sessionStorage.setItem("marci_current_user", JSON.stringify(currentUser));
+            localStorage.setItem("marci_last_active_profile_id", currentUser.id);
+            localStorage.setItem("marci_profiles", JSON.stringify([]));
+        }
+
+        function loadGameForUser(profile) {
+            resetGameStateToDefault();
+            if (profile && profile.username) {
+                currentUser = profile;
+                const saveKey = `marci_clicker_save_${currentUser.id}`;
+                const saveData = JSON.parse(localStorage.getItem(saveKey) || "null");
+                if (saveData) {
+                    game.score = saveData.score || 0;
+                    game.totalPats = saveData.totalPats || 0;
+                    game.baseHPC = saveData.baseHPC || 1;
+                    game.clickPercentHps = saveData.clickPercentHps || 0;
+                    game.themeId = saveData.themeId || 'marci';
+                    game.targetImgUrl = saveData.targetImgUrl || 'Marci/idle.jpg';
+                    game.targetClickUrl = saveData.targetClickUrl || 'Marci/petpet.gif';
+                    game.buildings = { ...game.buildings, ...(saveData.buildings || {}) };
+                    game.upgradesOwned = saveData.upgradesOwned || [];
+                    game.achievementsUnlocked = saveData.achievementsUnlocked || [];
+                    game.stats = { ...game.stats, ...(saveData.stats || {}) };
+                    const mults = saveData.buildingsMult || {};
+                    if (mults.tenderTouch) BUILDING_DEFS.tenderTouch.mult = mults.tenderTouch;
+                    if (mults.neighbor) BUILDING_DEFS.neighbor.mult = mults.neighbor;
+                    if (mults.mechanical) BUILDING_DEFS.mechanical.mult = mults.mechanical;
+                    if (mults.velvetGlove) BUILDING_DEFS.velvetGlove.mult = mults.velvetGlove;
+                    if (mults.dojo) BUILDING_DEFS.dojo.mult = mults.dojo;
+                    if (mults.quantumHand) BUILDING_DEFS.quantumHand.mult = mults.quantumHand;
+                    if (mults.portal) BUILDING_DEFS.portal.mult = mults.portal;
+                    if (mults.cosmicBlessing) BUILDING_DEFS.cosmicBlessing.mult = mults.cosmicBlessing;
+                    applyThemePreset(game.themeId);
+                }
+            }
+            updateUI();
+        }
+
+
+        function resetGameStateToDefault() {
+            game.score = 0;
+            game.totalPats = 0;
+            game.baseHPC = 1;
+            game.clickPercentHps = 0;
+            game.themeId = 'marci';
+            const preset = getThemePreset(game.themeId);
+            game.targetImgUrl = preset.idleUrl;
+            game.targetClickUrl = preset.clickUrl;
+            applyThemePreset(game.themeId);
+            
+            for (let key in game.buildings) {
+                game.buildings[key] = 0;
+            }
+            
+            game.upgradesOwned = [];
+            
+            BUILDING_DEFS.tenderTouch.mult = 1;
+            BUILDING_DEFS.neighbor.mult = 1;
+            BUILDING_DEFS.mechanical.mult = 1;
+            BUILDING_DEFS.velvetGlove.mult = 1;
+            BUILDING_DEFS.dojo.mult = 1;
+            BUILDING_DEFS.quantumHand.mult = 1;
+            BUILDING_DEFS.portal.mult = 1;
+            BUILDING_DEFS.cosmicBlessing.mult = 1;
+            
+            game.achievementsUnlocked = [];
+            
+            game.stats.totalClicks = 0;
+            game.stats.timePlayed = 0;
+        }
+
+        function exportSave() {
+            if (!currentUser) return;
+            saveGame();
+            const saveKey = `marci_clicker_save_${currentUser.id}`;
+            const stringified = localStorage.getItem(saveKey);
+            if (!stringified) {
+                alert(t('alerts.noSaveExport'));
+                return;
+            }
+            const encoded = btoa(unescape(encodeURIComponent(stringified)));
+            
+            const input = document.createElement("input");
+            input.value = encoded;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand("copy");
+            input.remove();
+            
+            alert(t('alerts.saveExported'));
+        }
+
+        function importSave() {
+            if (!currentUser) return;
+            const code = prompt(t('alerts.importPrompt'));
+            if (!code) return;
+            try {
+                const decoded = decodeURIComponent(escape(atob(code)));
+                const parsed = JSON.parse(decoded);
+                if (parsed && parsed.score !== undefined) {
+                    const saveKey = `marci_clicker_save_${currentUser.id}`;
+                    localStorage.setItem(saveKey, decoded);
+                    window.location.reload();
+                } else {
+                    alert(t('alerts.invalidSave'));
+                }
+            } catch (e) {
+                alert(t('alerts.parseSaveFail'));
+            }
+        }
+
+        function resetGame() {
+            if (!currentUser) return;
+            const confirm1 = confirm(t('alerts.resetConfirm1', { user: currentUser.username }));
+            if (confirm1) {
+                const confirm2 = confirm(t('alerts.resetConfirm2'));
+                if (confirm2) {
+                    const saveKey = `marci_clicker_save_${currentUser.id}`;
+                    localStorage.removeItem(saveKey);
+                    window.location.reload();
+                }
+            }
+        }
+
+        // --- Headline News Ticker Engine ---
+        function cycleTicker() {
+            const el = document.getElementById("news-ticker");
+            if (!el) return;
+            const headlines = getNewsHeadlines();
+            let index = Math.floor(Math.random() * headlines.length);
+            
+            el.style.opacity = 0;
+            setTimeout(() => {
+                el.textContent = headlines[index];
+                el.style.opacity = 1;
+            }, 400);
+        }
+
+        // --- Core Loops ---
+
+        // Game Loop (runs every 1 second: adds HPS to score, increments play timer)
+        setInterval(() => {
+            if (!currentUser) return;
+            const hps = getHPS();
+            if (hps > 0) {
+                game.score += hps;
+                game.totalPats += hps;
+            }
+
+            game.stats.timePlayed += 1;
+
+            checkAchievements();
+            updateUI();
+        }, 1000);
+
+        // Auto Save Loop (runs every 10 seconds)
+        setInterval(() => {
+            saveGame();
+        }, 10000);
+
+        // News Headline Ticker Loop (runs every 12 seconds)
+        setInterval(() => {
+            cycleTicker();
+        }, 12000);
+
+        // --- On Page Start ---
+        window.addEventListener("DOMContentLoaded", () => {
+            applyStaticTranslations();
+            applyThemePreset(game.themeId);
+            updateUI();
+
+            // Check for Discord redirect access token in hash
+            if (window.location.hash) {
+                const params = new URLSearchParams(window.location.hash.slice(1));
+                const accessToken = params.get("access_token");
+                if (accessToken) {
+                    history.replaceState("", document.title, window.location.pathname);
+                    
+                    fetch('https://discord.com/api/users/@me', {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.username) {
+                            const avatarUrl = data.avatar 
+                                ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` 
+                                : `https://cdn.discordapp.com/embed/avatars/${data.discriminator % 5}.png`;
+                            
+                            loginAsUser({
+                                username: data.username,
+                                avatar: avatarUrl,
+                                id: `discord_${data.id}`,
+                                type: 'Discord'
+                            });
+                        }
+                    })
+                    .catch(e => {
+                        console.error("Discord API fetch failed:", e);
+                    });
+                    return;
+                }
+            }
+
+            // Initialize configurations
+            const initialPreset = getThemePreset(game.themeId);
+            game.targetImgUrl = initialPreset.idleUrl;
+            game.targetClickUrl = initialPreset.clickUrl;
+            applyThemePreset(game.themeId);
+            initGoogleSignIn();
+            initDiscord();
+            initFirebase();
+
+            const sessionUser = sessionStorage.getItem("marci_current_user");
+            const lastActiveProfileId = localStorage.getItem("marci_last_active_profile_id");
+
+            if (sessionUser) {
+                const profile = JSON.parse(sessionUser);
+                loginAsUser(profile);
+            } else if (lastActiveProfileId) {
+                const profiles = JSON.parse(localStorage.getItem("marci_profiles") || "[]");
+                const profile = profiles.find(p => p.id === lastActiveProfileId);
+                if (profile) {
+                    loginAsUser(profile);
+                } else {
+                    document.getElementById("login-overlay").classList.remove("hidden");
+                    renderProfilesListInOverlay();
+                }
+            } else {
+                document.getElementById("login-overlay").classList.remove("hidden");
+                renderProfilesListInOverlay();
+            }
+            
+            // Initialize news headline
+            cycleTicker();
+            
+            const ticker = document.getElementById("news-ticker");
+            if (ticker) {
+                ticker.style.transition = "opacity 0.4s ease";
+            }
+        });
+    </script>
+</body>
+</html>
